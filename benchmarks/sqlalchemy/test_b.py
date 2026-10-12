@@ -17,4 +17,4 @@ for i in range(count):
 session.commit()
 now = time.time()
 
-print(f"SQLAlchemy ORM, B: Rows/sec: {count / (now - start): 10.2f}")
+print(f"SA ORM, B: Rows/sec: {count / (now - start): 10.2f}")

@@ -19,6 +19,7 @@ printf '' > outfile1
 
 django/bench.sh | tee -a outfile1
 peewee/bench.sh | tee -a outfile1
+sqlalchemy/bench.sh | tee -a outfile1
 sqlalchemy_async/bench.sh | tee -a outfile1
 sqlobject/bench.sh | tee -a outfile1
 tortoise/bench.sh | tee -a outfile1
@@ -34,6 +35,7 @@ printf '' > outfile2
 
 django/bench.sh | tee -a outfile2
 peewee/bench.sh | tee -a outfile2
+sqlalchemy/bench.sh | tee -a outfile2
 sqlalchemy_async/bench.sh | tee -a outfile2
 sqlobject/bench.sh | tee -a outfile2
 tortoise/bench.sh | tee -a outfile2
@@ -49,6 +51,7 @@ printf '' > outfile3
 
 django/bench.sh | tee -a outfile3
 peewee/bench.sh | tee -a outfile3
+sqlalchemy/bench.sh | tee -a outfile3
 sqlalchemy_async/bench.sh | tee -a outfile3
 sqlobject/bench.sh | tee -a outfile3
 tortoise/bench.sh | tee -a outfile3

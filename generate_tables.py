@@ -19,7 +19,7 @@ OP_LABELS = {
     "K": "Delete",
 }
 
-ORM_ORDER = ["Django", "peewee", "SA ORM async", "SQLObject", "Tortoise ORM", "Piccolo", "ormar", "SQLModel", "ObjectBox"]
+ORM_ORDER = ["Django", "peewee", "SA ORM", "SA ORM async", "SQLObject", "Tortoise ORM", "Piccolo", "ormar", "SQLModel", "ObjectBox"]
 OP_ORDER = list("ABCDEFGHIJK")
 
 

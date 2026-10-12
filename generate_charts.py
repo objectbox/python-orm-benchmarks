@@ -30,6 +30,7 @@ ORM_COLORS = {
     "Tortoise ORM": "#2ecc71",
     "Django": "#3498db",
     "peewee": "#e67e22",
+    "SA ORM": "#5e3370",
     "SA ORM async": "#9b59b6",
     "SQLObject": "#95a5a6",
     "Piccolo": "#e74c3c",
@@ -38,7 +39,7 @@ ORM_COLORS = {
     "ObjectBox": "#2c3e50",
 }
 
-ORM_ORDER = ["Tortoise ORM", "Django", "peewee", "SA ORM async", "SQLObject", "Piccolo", "ormar", "SQLModel", "ObjectBox"]
+ORM_ORDER = ["Tortoise ORM", "Django", "peewee", "SA ORM", "SA ORM async", "SQLObject", "Piccolo", "ormar", "SQLModel", "ObjectBox"]
 OP_ORDER = list("ABCDEFGHIJK")
 
 
@@ -150,7 +151,10 @@ def generate_geomean_summary(all_data, title, output_path):
     ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, _: f"{v:,.0f}"))
     ax.grid(axis="y", alpha=0.3, zorder=0)
     ax.set_axisbelow(True)
-    ax.legend(loc="upper right", fontsize=9, ncol=min(n_orms, 4), framealpha=0.9)
+    ax.set_ylim(top=ax.get_ylim()[1] * 1.08)  # room for the rotated value labels
+    # below the plot, so it can't cover the value labels of the tallest bars
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.08), fontsize=9,
+              ncol=min(n_orms, 5), framealpha=0.9)
 
     plt.tight_layout()
     plt.savefig(output_path, dpi=150, bbox_inches="tight", facecolor="white")

@@ -18,4 +18,4 @@ session.bulk_save_objects(
 session.commit()
 now = time.time()
 
-print(f"SQLAlchemy ORM, C: Rows/sec: {count / (now - start): 10.2f}")
+print(f"SA ORM, C: Rows/sec: {count / (now - start): 10.2f}")

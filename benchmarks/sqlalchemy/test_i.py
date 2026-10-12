@@ -25,4 +25,4 @@ session.commit()
 
 now = time.time()
 
-print(f"SQLAlchemy ORM, I: Rows/sec: {count / (now - start): 10.2f}")
+print(f"SA ORM, I: Rows/sec: {count / (now - start): 10.2f}")

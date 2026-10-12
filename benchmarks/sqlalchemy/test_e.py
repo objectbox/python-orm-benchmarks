@@ -27,4 +27,4 @@ for _ in range(iters // 10):
 
 now = time.time()
 
-print(f"SQLAlchemy ORM, E: Rows/sec: {count / (now - start): 10.2f}")
+print(f"SA ORM, E: Rows/sec: {count / (now - start): 10.2f}")
