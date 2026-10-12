@@ -4,7 +4,7 @@ cd $(dirname $0)
 
 # setup DB
 ../db.sh
-PYTHONPATH="." sqlobject-admin create -m models
+python -m set_up
 
 # Test A → Insert
 python -m test_a
