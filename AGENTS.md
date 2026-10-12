@@ -10,12 +10,12 @@ A benchmark suite comparing Python ORMs (Django, peewee, SQLAlchemy async, SQLOb
 
 ```sh
 uv venv --python 3.14 && source .venv/bin/activate
-uv pip install -e .            # or: make deps
+uv pip install --no-sources -r pyproject.toml
 ```
 
-Use Python 3.14 to match the published results. Without `--python`, uv picks whatever interpreter it already has, which may be older. SQLite is the version bundled with the Python build (3.53.1 with uv's CPython 3.14.6), not a pip package. pydantic is held below 2.14 by ormar's version constraint.
+Use Python 3.14 to match the published results. Without `--python`, uv picks whatever interpreter it already has, which may be older. SQLite is the version bundled with the Python build (3.53.1 with uv's CPython 3.14.6), not a pip package; `smoke.py` prints the version in use. pydantic is held below 2.14 by ormar's version constraint.
 
-Note: `pyproject.toml` has a `[tool.uv.sources]` entry pointing `tortoise-orm` at a local macOS path (`/Users/abondar/...`). It has to be removed or changed for installs on any other machine.
+`uv pip install -e .` (and so `make deps`) fails: hatchling finds no package to build. `--no-sources` skips the `[tool.uv.sources]` entry that points `tortoise-orm` at a local macOS path (`/Users/abondar/...`).
 
 Lint/format (black line length 100, flake8, isort, bandit; applies to `benchmarks/`):
 ```sh
@@ -28,6 +28,12 @@ Run benchmarks. Shell scripts read their config from env vars: `DBTYPE` (`sqlite
 cd benchmarks && sh bench.sh          # all ORMs, Tests 1-3, 100 iterations ("full" = 1000, "extra" = 10000)
 cd benchmarks && sh bench_all.sh      # sqlite + postgres + mysql
 make benchmark_sqlite | benchmark_postgres | benchmark_mysql
+```
+
+Smoke test (SQLite only; there is no other test suite). It runs each ORM in `bench.sh` for Tests 1-3 and fails when an expected `Rows/sec` line is missing or error output appears. Don't rely on exit codes: the sync `bench.sh` scripts keep going after a failing step.
+```sh
+.venv/bin/python benchmarks/smoke.py                 # all ORMs, tests 1-3, 100 iterations (~2 min)
+.venv/bin/python benchmarks/smoke.py -t 1 -v peewee  # one ORM/test, print output of failures
 ```
 
 Run a single ORM / single test model:
