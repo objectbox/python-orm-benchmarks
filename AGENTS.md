@@ -4,14 +4,20 @@ This file provides guidance to AI coding agents working with code in this reposi
 
 ## What this is
 
-A benchmark suite comparing Python ORMs (Django, peewee, SQLAlchemy async, SQLObject, Tortoise ORM, Piccolo, ormar, SQLModel) on SQLite, PostgreSQL and MySQL. There is no test suite; the "tests" are benchmark operations. `README.md` holds the published results tables and charts.
+A benchmark suite comparing Python ORMs (Django, peewee, SQLAlchemy async, SQLObject, Tortoise ORM, Piccolo, ormar, SQLModel) on SQLite, PostgreSQL and MySQL, plus the embedded object database ObjectBox (SQLite runs only). There is no test suite; the "tests" are benchmark operations. `README.md` holds the published results tables and charts.
 
 ## Commands
 
 ```sh
 uv venv --python 3.14 && source .venv/bin/activate
-uv pip install --no-sources -r pyproject.toml
+uv pip install --no-sources --find-links wheels -r pyproject.toml
 ```
+
+`objectbox==5.0.0b1` is an unreleased beta that is not on PyPI, so its wheels must be in `wheels/` (gitignored, not committed). They are built from objectbox-python branch `fast-flatbuffers-builder` @ `0c8b3e6` (not pushed), which includes the experimental codegen for puts and reads:
+```sh
+mkdir -p wheels && cp ~/dev/objectbox-python/dist/*.whl wheels/
+```
+`make build` in objectbox-python replaces `dist/`. The version string doesn't change between builds, so reinstall with `uv pip install --force-reinstall --no-deps wheels/objectbox-5.0.0b1-py3-none-any.whl`. Wheels built from other branches also carry version 5.0.0b1 but lack the codegen. Expected sha256 for Linux x86_64: `objectbox-5.0.0b1-py3-none-any.whl` `0b0129424b60e485ceca20a264e01049ef8df45393546cb72216c938b90dd9f2`, `objectbox_clib-5.3.2-py3-none-manylinux_2_28_x86_64.whl` `735ff58e7d71212922378bbc9d076b5ad09d1391b6874fdff448849af65e6ab0`.
 
 Use Python 3.14 to match the published results. Without `--python`, uv picks whatever interpreter it already has, which may be older. SQLite is the version bundled with the Python build (3.53.1 with uv's CPython 3.14.6), not a pip package; `smoke.py` prints the version in use. pydantic is held below 2.14 by ormar's version constraint.
 
@@ -23,7 +29,7 @@ make style    # isort + black
 make check    # black --check, flake8, bandit
 ```
 
-Run benchmarks. Shell scripts read their config from env vars: `DBTYPE` (`sqlite` (default) | `postgres` | `mysql`), `PASSWORD`, `PGPORT`, `MYPORT`, `TEST` (1|2|3), `ITERATIONS`, `CONCURRENTS` (async ORMs, default 10), `UVLOOP`.
+Run benchmarks. Shell scripts read their config from env vars: `DBTYPE` (`sqlite` (default) | `postgres` | `mysql`), `PASSWORD`, `PGPORT`, `MYPORT`, `TEST` (1|2|3), `ITERATIONS`, `CONCURRENTS` (async ORMs, default 10), `UVLOOP`, `OBX_CODEGEN` (ObjectBox experimental codegen, `1` (default) | `0`; with `0` the results are labeled "ObjectBox (no codegen)").
 ```sh
 cd benchmarks && sh bench.sh          # all ORMs, Tests 1-3, 100 iterations ("full" = 1000, "extra" = 10000)
 cd benchmarks && sh bench_all.sh      # sqlite + postgres + mysql
@@ -51,4 +57,5 @@ DB setup (`benchmarks/db.sh`): SQLite uses `/tmp/db.sqlite3`. Postgres needs `ps
 - **Sync vs async runners**: sync ORMs (django, peewee, sqlobject, pony, sqlalchemy) run each `test_*.py` as a separate `python -m` process from `bench.sh`, after a `set_up.py`/migrate step. Async ORMs (tortoise, piccolo, ormar, sqlalchemy_async, sqlmodel) have a `bench.py` that builds the DB URL from env, creates the schema and awaits each test module's `runtest(loopstr)`. Each async test fans out across `CONCURRENTS` coroutines with `asyncio.gather`.
 - **Output contract**: every test prints exactly one line, `"<ORM Name>, <Letter>: Rows/sec: <float>"`. `benchmarks/present.py` (stdin → table with geometric mean and best ORM), `generate_tables.py` and `generate_charts.py` all parse that format with regexes, so keep it exact. The ORM display name must also match the `ORM_ORDER`/`ORM_COLORS` lists in the generator scripts.
 - **Which ORMs run**: `benchmarks/bench.sh` lists the ORMs explicitly for each test. `pony/` and the sync `sqlalchemy/` directory exist but are not in the list. To add an ORM, create its directory, add it to all three test blocks in `bench.sh`, and add it to the ORM lists in `generate_tables.py`/`generate_charts.py` and to README.md.
+- **ObjectBox** (`benchmarks/objectbox/`, sync layout) is not a SQL ORM: its `bench.sh` exits immediately for `DBTYPE=postgres`/`mysql`, and it doesn't use `db.sh`. `set_up.py` wipes `/tmp/objectbox-bench`, which also holds `objectbox-model.json`, so each `TEST` starts with a fresh schema. Differences from the SQL ORMs: no relations in the Python binding (Test 2 uses indexed id properties), no NULL or per-property defaults (Test 3: `new_journal()` sets defaults, "nullable" columns stay unset), decimals stored as strings, JSON as a JSON string via the `put`/`find`/`get`/`get_all` helpers in `models.py` (Flex decodes ~40x slower than `json.loads`), no G/H (no projection API), and J writes the whole object. Beta quirk: `Query.offset()`/`limit()` don't return the query, so don't chain them.
 - **Results pipeline**: `bench.sh` writes `benchmarks/outfile{1,2,3}` and appends to `benchmarks/results`. `generate_tables.py` (markdown tables for README.md) and `generate_charts.py` (PNGs in `images/`) read from `/tmp/{pg,mysql,sqlite}_outfile{1,2,3}`, so the outfiles have to be copied/renamed there for each DB type before you run them.

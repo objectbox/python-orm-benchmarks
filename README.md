@@ -14,9 +14,11 @@ Comprehensive performance benchmarks comparing popular Python ORMs across Postgr
 | [Piccolo](https://github.com/piccolo-orm/piccolo) | async | asyncpg | — | aiosqlite |
 | [ormar](https://github.com/collerek/ormar) | async | asyncpg | aiomysql | aiosqlite |
 | [SQLModel](https://github.com/tiangolo/sqlmodel) | async | asyncpg | aiomysql | aiosqlite |
+| [ObjectBox](https://github.com/objectbox/objectbox-python) | sync | — | — | embedded (own storage engine) |
 
 > **Environment:** Python 3.14, macOS (Apple Silicon), 100 iterations per operation.
 > Piccolo does not support MySQL.
+> ObjectBox is an embedded object database, not an ORM on top of SQL, so it is only compared in the SQLite runs. It uses the unreleased 5.0.0b1 beta with its experimental FlatBuffers codegen enabled (`OBX_CODEGEN=0` disables it). Differences to the SQL ORMs: Test 2 uses plain indexed ids (the Python binding has no relations), Test 3 stores decimals as strings and leaves "nullable" columns unset (no NULL support), Filter: dict/tuple are not supported (no projection API), and Update: Partial writes the whole object. Its geometric mean covers 9 operations.
 
 ## Operations
 

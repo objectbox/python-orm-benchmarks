@@ -25,6 +25,7 @@ tortoise/bench.sh | tee -a outfile1
 piccolo/bench.sh | tee -a outfile1
 ormar/bench.sh | tee -a outfile1
 sqlmodel/bench.sh | tee -a outfile1
+objectbox/bench.sh | tee -a outfile1
 
 
 echo Test 2
@@ -39,6 +40,7 @@ tortoise/bench.sh | tee -a outfile2
 piccolo/bench.sh | tee -a outfile2
 ormar/bench.sh | tee -a outfile2
 sqlmodel/bench.sh | tee -a outfile2
+objectbox/bench.sh | tee -a outfile2
 
 
 echo Test 3
@@ -53,6 +55,7 @@ tortoise/bench.sh | tee -a outfile3
 piccolo/bench.sh | tee -a outfile3
 ormar/bench.sh | tee -a outfile3
 sqlmodel/bench.sh | tee -a outfile3
+objectbox/bench.sh | tee -a outfile3
 
 echo `python -V`, Iterations: $ITERATIONS DBtype: $DBTYPE | tee -a results
 cat outfile1 | ./present.py "Test 1" | tee -a results

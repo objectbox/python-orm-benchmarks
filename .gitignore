@@ -112,3 +112,6 @@ outfile*
 benchmarks/results
 benchmarks/results_all
 .DS_Store
+
+# ObjectBox beta wheels (not committed, see AGENTS.md)
+wheels/
