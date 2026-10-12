@@ -22,4 +22,4 @@ async def runtest(loopstr):
     start = time.time()
     await asyncio.gather(*[_runtest(count // concurrents) for _ in range(concurrents)])
     now = time.time()
-    print(f"SQLModel{loopstr}, A: Rows/sec: {count / (now - start): 10.2f}")
+    print(f"SQLModel async{loopstr}, A: Rows/sec: {count / (now - start): 10.2f}")

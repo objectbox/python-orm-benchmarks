@@ -36,4 +36,4 @@ async def runtest(loopstr):
         )
     )
     now = time.time()
-    print(f"SQLModel{loopstr}, J: Rows/sec: {count / (now - start): 10.2f}")
+    print(f"SQLModel async{loopstr}, J: Rows/sec: {count / (now - start): 10.2f}")

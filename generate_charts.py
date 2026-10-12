@@ -35,11 +35,12 @@ ORM_COLORS = {
     "SQLObject": "#95a5a6",
     "Piccolo": "#e74c3c",
     "ormar": "#1abc9c",
-    "SQLModel": "#f39c12",
+    "SQLModel": "#b9770e",
+    "SQLModel async": "#f39c12",
     "ObjectBox": "#2c3e50",
 }
 
-ORM_ORDER = ["Tortoise ORM", "Django", "peewee", "SA ORM", "SA ORM async", "SQLObject", "Piccolo", "ormar", "SQLModel", "ObjectBox"]
+ORM_ORDER = ["Tortoise ORM", "Django", "peewee", "SA ORM", "SA ORM async", "SQLObject", "Piccolo", "ormar", "SQLModel", "SQLModel async", "ObjectBox"]
 OP_ORDER = list("ABCDEFGHIJK")
 
 
