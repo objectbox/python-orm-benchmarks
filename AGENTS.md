@@ -1,0 +1,48 @@
+# AGENTS.md
+
+This file provides guidance to AI coding agents working with code in this repository.
+
+## What this is
+
+A benchmark suite comparing Python ORMs (Django, peewee, SQLAlchemy async, SQLObject, Tortoise ORM, Piccolo, ormar, SQLModel) on SQLite, PostgreSQL and MySQL. There is no test suite; the "tests" are benchmark operations. `README.md` holds the published results tables and charts.
+
+## Commands
+
+```sh
+uv venv --python 3.14 && source .venv/bin/activate
+uv pip install -e .            # or: make deps
+```
+
+Use Python 3.14 to match the published results. Without `--python`, uv picks whatever interpreter it already has, which may be older. SQLite is the version bundled with the Python build (3.53.1 with uv's CPython 3.14.6), not a pip package. pydantic is held below 2.14 by ormar's version constraint.
+
+Note: `pyproject.toml` has a `[tool.uv.sources]` entry pointing `tortoise-orm` at a local macOS path (`/Users/abondar/...`). It has to be removed or changed for installs on any other machine.
+
+Lint/format (black line length 100, flake8, isort, bandit; applies to `benchmarks/`):
+```sh
+make style    # isort + black
+make check    # black --check, flake8, bandit
+```
+
+Run benchmarks. Shell scripts read their config from env vars: `DBTYPE` (`sqlite` (default) | `postgres` | `mysql`), `PASSWORD`, `PGPORT`, `MYPORT`, `TEST` (1|2|3), `ITERATIONS`, `CONCURRENTS` (async ORMs, default 10), `UVLOOP`.
+```sh
+cd benchmarks && sh bench.sh          # all ORMs, Tests 1-3, 100 iterations ("full" = 1000, "extra" = 10000)
+cd benchmarks && sh bench_all.sh      # sqlite + postgres + mysql
+make benchmark_sqlite | benchmark_postgres | benchmark_mysql
+```
+
+Run a single ORM / single test model:
+```sh
+cd benchmarks && TEST=2 ITERATIONS=100 DBTYPE=sqlite sh tortoise/bench.sh
+```
+Run a single operation with a sync ORM: `cd benchmarks/peewee && ../db.sh && python -m set_up && python -m test_d`. Async ORMs run every operation in one process through `bench.py`, so to run a single op you edit `bench.py`.
+
+DB setup (`benchmarks/db.sh`): SQLite uses `/tmp/db.sqlite3`. Postgres needs `psql` reaching `127.0.0.1` as user `postgres`. MySQL expects a Docker container named `bench-mysql`. Each run drops and recreates database `tbench`.
+
+## Architecture
+
+- **One directory per ORM** under `benchmarks/<orm>/`, each with `models.py`, `bench.sh` and `test_a.py` … `test_k.py`, one file per operation (A = single insert … K = delete; the operation table is in README.md). Some ORMs leave out operations they don't support (e.g. SQLObject has no C/G/H, Pony has no C).
+- **Test model selection**: every `models.py` reads `TEST` from the env at import time and defines a different `Journal` model for it: 1 = simple 4-field model, 2 = self-FK + M2M, 3 = wide model with 32+ fields. A model change has to be made in all ORM directories so the comparison stays fair.
+- **Sync vs async runners**: sync ORMs (django, peewee, sqlobject, pony, sqlalchemy) run each `test_*.py` as a separate `python -m` process from `bench.sh`, after a `set_up.py`/migrate step. Async ORMs (tortoise, piccolo, ormar, sqlalchemy_async, sqlmodel) have a `bench.py` that builds the DB URL from env, creates the schema and awaits each test module's `runtest(loopstr)`. Each async test fans out across `CONCURRENTS` coroutines with `asyncio.gather`.
+- **Output contract**: every test prints exactly one line, `"<ORM Name>, <Letter>: Rows/sec: <float>"`. `benchmarks/present.py` (stdin → table with geometric mean and best ORM), `generate_tables.py` and `generate_charts.py` all parse that format with regexes, so keep it exact. The ORM display name must also match the `ORM_ORDER`/`ORM_COLORS` lists in the generator scripts.
+- **Which ORMs run**: `benchmarks/bench.sh` lists the ORMs explicitly for each test. `pony/` and the sync `sqlalchemy/` directory exist but are not in the list. To add an ORM, create its directory, add it to all three test blocks in `bench.sh`, and add it to the ORM lists in `generate_tables.py`/`generate_charts.py` and to README.md.
+- **Results pipeline**: `bench.sh` writes `benchmarks/outfile{1,2,3}` and appends to `benchmarks/results`. `generate_tables.py` (markdown tables for README.md) and `generate_charts.py` (PNGs in `images/`) read from `/tmp/{pg,mysql,sqlite}_outfile{1,2,3}`, so the outfiles have to be copied/renamed there for each DB type before you run them.
