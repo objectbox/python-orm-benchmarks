@@ -63,7 +63,7 @@ sqlmodel_sync/bench.sh | tee -a outfile3
 sqlmodel/bench.sh | tee -a outfile3
 objectbox/bench.sh | tee -a outfile3
 
-echo `python -V`, Iterations: $ITERATIONS DBtype: $DBTYPE | tee -a results
+echo `python -V`, Iterations: $ITERATIONS DBtype: $DBTYPE${WARMUP:+ Warmup: $WARMUP} | tee -a results
 cat outfile1 | ./present.py "Test 1" | tee -a results
 cat outfile2 | ./present.py "Test 2" | tee -a results
 cat outfile3 | ./present.py "Test 3" | tee -a results

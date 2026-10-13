@@ -2,39 +2,44 @@
 
 cd $(dirname $0)
 
+# WARMUP=1: run each operation once untimed before timing it (see ../warmup.py)
+run() {
+    if [ "${WARMUP:-0}" != 0 ]; then python ../warmup.py "$1"; else python -m "$1"; fi
+}
+
 # setup DB
 ../db.sh
 python -m set_up
 
 # Test A → Insert
-python -m test_a
+run test_a
 
 # Test B → Transactioned Intsert
-python -m test_b
+run test_b
 
 # Test C → Bulk Insert
-python -m test_c
+run test_c
 
 # Test D → Filter on level
-python -m test_d
+run test_d
 
 # Test E → Filter limit 20
-python -m test_e
+run test_e
 
 # Test F → Get
-python -m test_f
+run test_f
 
 # Test G → dict
-python -m test_g
+run test_g
 
 # Test H → tuple
-python -m test_h
+run test_h
 
 # Test I → Update full
-python -m test_i
+run test_i
 
 # Test J → Update partial
-python -m test_j
+run test_j
 
 # Test K → Delete
-python -m test_k
+run test_k

@@ -2,40 +2,45 @@
 
 cd $(dirname $0)
 
+# WARMUP=1: run each operation once untimed before timing it (see ../warmup.py)
+run() {
+    if [ "${WARMUP:-0}" != 0 ]; then python ../warmup.py "$1"; else python -m "$1"; fi
+}
+
 # setup DB
 ../db.sh
 export DJANGO_SETTINGS_MODULE="simple.settings"
 ./manage-simple.py migrate -v 0
 
 # Test A → Insert
-python -m simple.test_a
+run simple.test_a
 
 # Test B → Transactioned Intsert
-python -m simple.test_b
+run simple.test_b
 
 # Test C → Bulk Insert
-python -m simple.test_c
+run simple.test_c
 
 # Test D → Filter on level
-python -m simple.test_d
+run simple.test_d
 
 # Test E → Filter limit 20
-python -m simple.test_e
+run simple.test_e
 
 # Test F → Get
-python -m simple.test_f
+run simple.test_f
 
 # Test G → dict
-python -m simple.test_g
+run simple.test_g
 
 # Test H → tuple
-python -m simple.test_h
+run simple.test_h
 
 # Test I → Update full
-python -m simple.test_i
+run simple.test_i
 
 # Test J → Update partial
-python -m simple.test_j
+run simple.test_j
 
 # Test K → Delete
-python -m simple.test_k
+run simple.test_k

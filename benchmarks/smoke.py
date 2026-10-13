@@ -4,7 +4,7 @@
 A run passes when it prints one "<ORM>, <Letter>: Rows/sec: <value>" line with a positive value
 for every test_<letter>.py in the ORM's directory, and nothing that looks like a traceback.
 
-Usage: python smoke.py [-i ITERATIONS] [-t TEST ...] [ORM_DIR ...]
+Usage: python smoke.py [-i ITERATIONS] [-t TEST ...] [-w] [ORM_DIR ...]
 """
 import argparse
 import os
@@ -33,10 +33,11 @@ def expected_ops(orm):
     return sorted(p.stem[-1].upper() for p in (HERE / orm).rglob("test_?.py"))
 
 
-def run(orm, test, iterations):
+def run(orm, test, iterations, warm=False):
     # bench.sh scripts call "python", so make sure it resolves to the interpreter running this
     path = os.pathsep.join([str(Path(sys.executable).parent), os.environ.get("PATH", "")])
-    env = dict(os.environ, PATH=path, DBTYPE="sqlite", TEST=str(test), ITERATIONS=str(iterations))
+    env = dict(os.environ, PATH=path, DBTYPE="sqlite", TEST=str(test), ITERATIONS=str(iterations),
+               WARMUP="1" if warm else "0")
     start = time.time()
     proc = subprocess.run(
         ["sh", str(HERE / orm / "bench.sh")],
@@ -72,18 +73,19 @@ def main():
     parser.add_argument("orms", nargs="*", help="ORM directories (default: all from bench.sh)")
     parser.add_argument("-t", "--test", type=int, action="append", choices=[1, 2, 3])
     parser.add_argument("-i", "--iterations", type=int, default=100, help="must be > 20")
+    parser.add_argument("-w", "--warm", action="store_true", help="warm-up mode (WARMUP=1)")
     parser.add_argument("-v", "--verbose", action="store_true", help="print output of failures")
     args = parser.parse_args()
 
     orms = args.orms or orms_from_bench_sh()
     tests = args.test or [1, 2, 3]
     print(f"Python {sys.version.split()[0]}, SQLite {sqlite3.sqlite_version}, "
-          f"iterations {args.iterations}")
+          f"iterations {args.iterations}{', warm-up' if args.warm else ''}")
 
     failures = []
     for orm in orms:
         for test in tests:
-            problems, elapsed, output = run(orm, test, args.iterations)
+            problems, elapsed, output = run(orm, test, args.iterations, args.warm)
             status = "FAIL" if problems else "ok"
             print(f"{status:4} {orm:18} test {test}  {elapsed:6.1f}s  {'; '.join(problems)}")
             if problems:

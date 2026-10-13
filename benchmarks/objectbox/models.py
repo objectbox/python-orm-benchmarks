@@ -175,9 +175,32 @@ def _restore(obj, values):
 
 # The model JSON lives in DB_DIR, so it is wiped (by set_up.py) together with the DB for every TEST
 os.makedirs(DB_DIR, exist_ok=True)
-store = Store(directory=DB_DIR, model_json_file=os.path.join(DB_DIR, "objectbox-model.json"))
-atexit.register(store.close)
+
+
+def _open():
+    return Store(directory=DB_DIR, model_json_file=os.path.join(DB_DIR, "objectbox-model.json"))
+
+
+store = _open()
+atexit.register(lambda: store.close())
 box = store.box(Journal)
+
+
+def reopen(restore_files):
+    """Closes the store, calls restore_files() and opens it again (WARMUP=1, see ../warmup.py).
+    Opening a store syncs the model, which drops the entity's compiled codegen; the model file is
+    the same, so the code compiled in the warm-up run is kept."""
+    global store, box
+    entity = box._entity
+    builders = entity._fast_builder, entity._codegen_builder
+    store.close()
+    restore_files()
+    store = _open()
+    box = store.box(Journal)
+    entity._fast_builder, entity._codegen_builder = builders
+    if not JSON_FIELDS:  # the helpers below are the old box's methods
+        globals().update(put=box.put, get=box.get, get_all=box.get_all)
+
 
 # Read/write helpers used by the tests; they convert JSON fields eagerly, like an ORM's JSON field
 if JSON_FIELDS:
