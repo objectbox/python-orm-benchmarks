@@ -34,13 +34,13 @@ ORM_COLORS = {
     "SA ORM async": "#9b59b6",
     "SQLObject": "#95a5a6",
     "Piccolo": "#e74c3c",
-    "ormar": "#1abc9c",
+    "ormar": "#d63384",
     "SQLModel": "#b9770e",
     "SQLModel async": "#f39c12",
-    "ObjectBox": "#2c3e50",
+    "ObjectBox": "#17A6A6",
 }
 
-ORM_ORDER = ["Tortoise ORM", "Django", "peewee", "SA ORM", "SA ORM async", "SQLObject", "Piccolo", "ormar", "SQLModel", "SQLModel async", "ObjectBox"]
+ORM_ORDER = ["ObjectBox", "Tortoise ORM", "Django", "peewee", "SA ORM", "SA ORM async", "SQLObject", "Piccolo", "ormar", "SQLModel", "SQLModel async"]
 OP_ORDER = list("ABCDEFGHIJK")
 
 
@@ -100,7 +100,9 @@ def generate_chart(data, title, output_path, show_geomean=True):
     ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, _: f"{v:,.0f}"))
     ax.grid(axis="y", alpha=0.3, zorder=0)
     ax.set_axisbelow(True)
-    ax.legend(loc="upper left", fontsize=9, ncol=min(n_orms, 4), framealpha=0.9)
+    # below the plot, so it can't cover the first bars
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.1), fontsize=9,
+              ncol=min(n_orms, 6), framealpha=0.9)
     ax.set_xlim(-0.6, n_ops - 0.4)
 
     if show_geomean:
