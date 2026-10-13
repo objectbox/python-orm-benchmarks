@@ -7,10 +7,12 @@
 
 Sync SQLModel (`SQLModel`) was added later the same day: its 5 runs were done separately and appended to each `run<n>/outfile<test>`, after the results of the other ORMs.
 
+ObjectBox was rerun later the same day with a newer build (`fc7c0be`, see Versions): its 5 runs replace the ObjectBox lines in each `run<n>/outfile<test>` and are appended at the end. The results of the earlier build (`0c8b3e6`, which imported numpy at startup and whose idle OpenBLAS threads slowed down the first operations) are kept in `superseded/objectbox-0c8b3e6/`.
+
 ## Environment
 
 Linux x86_64 (AMD Ryzen 9 5950X, ext4 on NVMe).
-Benchmark code: this repo at commit `bfed9cf`.
+Benchmark code: this repo at commit `bfed9cf` for all ORMs except ObjectBox; the ObjectBox runs used the code of the commit that added them (`benchmarks/objectbox/models.py` with the `OBX_CODEGEN_CACHE` option, unset).
 
 ## Versions
 
@@ -26,4 +28,4 @@ Benchmark code: this repo at commit `bfed9cf`.
 | Tortoise ORM | 1.1.8 |
 | Piccolo | 1.36.0 |
 | ormar | 0.26.0 |
-| ObjectBox | 5.0.0b1 (unreleased) |
+| ObjectBox | 5.0.0b1 (unreleased; objectbox-python branch `fast-flatbuffers-builder` @ `fc7c0be`, codegen on, no codegen cache) |

@@ -9,7 +9,7 @@ iters = int(os.environ.get("ITERATIONS", "1000"))
 start = time.time()
 
 query = box.query(Journal.level.equals(LEVEL_CHOICE[0])).build()
-query.limit(20)  # offset()/limit() must not be chained in the beta: they don't return the query
+query.limit(20)
 
 count = 0
 for _ in range(iters // 10):

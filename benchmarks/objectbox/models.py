@@ -17,10 +17,17 @@ from objectbox import (
     String,
 )
 
-# Experimental FlatBuffers codegen (unreleased objectbox beta); it only speeds up puts.
+# Experimental FlatBuffers codegen (unreleased objectbox beta) for puts and reads.
+# OBX_CODEGEN_CACHE=<dir> caches the compiled code across processes (off by default).
 codegen = os.environ.get("OBX_CODEGEN", "1") != "0"
-experimental.enable_flatbuffers_codegen(codegen)
-ORM_NAME = "ObjectBox" if codegen else "ObjectBox (no codegen)"
+codegen_cache = os.environ.get("OBX_CODEGEN_CACHE") or None
+experimental.enable_flatbuffers_codegen(codegen, cache_dir=codegen_cache)
+if not codegen:
+    ORM_NAME = "ObjectBox (no codegen)"
+elif codegen_cache:
+    ORM_NAME = "ObjectBox (codegen cache)"
+else:
+    ORM_NAME = "ObjectBox"
 
 DB_DIR = "/tmp/objectbox-bench"
 

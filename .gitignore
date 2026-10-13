@@ -115,3 +115,4 @@ benchmarks/results_all
 
 # ObjectBox beta wheels (not committed, see AGENTS.md)
 wheels/
+!raw-results/**/outfile*
