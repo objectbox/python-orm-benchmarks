@@ -1,0 +1,116 @@
+Django, A: Rows/sec:      54.17
+Django, B: Rows/sec:    3937.80
+Django, C: Rows/sec:    5055.75
+Django, D: Rows/sec:  157910.15
+Django, E: Rows/sec:   62080.85
+Django, F: Rows/sec:    7029.05
+Django, G: Rows/sec:  229594.23
+Django, H: Rows/sec:  239482.93
+Django, I: Rows/sec:    6278.90
+Django, J: Rows/sec:    7012.99
+Django, K: Rows/sec:    1933.28
+peewee, A: Rows/sec:     162.34
+peewee, B: Rows/sec:    9773.52
+peewee, C: Rows/sec:   14239.22
+peewee, D: Rows/sec:  191546.97
+peewee, E: Rows/sec:   83287.80
+peewee, F: Rows/sec:   10827.64
+peewee, G: Rows/sec:  290920.93
+peewee, H: Rows/sec:  293574.86
+peewee, I: Rows/sec:   13574.97
+peewee, J: Rows/sec:   18587.93
+peewee, K: Rows/sec:   23312.48
+SA ORM, A: Rows/sec:      53.26
+SA ORM, B: Rows/sec:    4647.38
+SA ORM, C: Rows/sec:    5190.26
+SA ORM, D: Rows/sec:  205680.44
+SA ORM, E: Rows/sec:   62201.72
+SA ORM, F: Rows/sec:    8438.73
+SA ORM, G: Rows/sec:  183341.52
+SA ORM, H: Rows/sec:  308382.03
+SA ORM, I: Rows/sec:   11102.41
+SA ORM, J: Rows/sec:   12132.55
+SA ORM, K: Rows/sec:    2271.23
+SA ORM async, A: Rows/sec:      48.75
+SA ORM async, B: Rows/sec:     219.95
+SA ORM async, C: Rows/sec:     219.95
+SA ORM async, D: Rows/sec:   40254.50
+SA ORM async, E: Rows/sec:   22130.84
+SA ORM async, F: Rows/sec:    3382.14
+SA ORM async, G: Rows/sec:   42133.91
+SA ORM async, H: Rows/sec:   46873.86
+SA ORM async, I: Rows/sec:     448.11
+SA ORM async, J: Rows/sec:     447.19
+SA ORM async, K: Rows/sec:     332.51
+SQLObject, A: Rows/sec:      53.89
+SQLObject, B: Rows/sec:    3843.01
+SQLObject, D: Rows/sec:   84432.36
+SQLObject, E: Rows/sec:   74957.18
+SQLObject, F: Rows/sec:   15951.26
+SQLObject, I: Rows/sec:    8667.35
+SQLObject, J: Rows/sec:    9775.00
+SQLObject, K: Rows/sec:      53.74
+Tortoise ORM, A: Rows/sec:     162.22
+Tortoise ORM, B: Rows/sec:    1487.73
+Tortoise ORM, C: Rows/sec:    1311.04
+Tortoise ORM, D: Rows/sec:   76845.03
+Tortoise ORM, E: Rows/sec:   44510.81
+Tortoise ORM, F: Rows/sec:    8025.76
+Tortoise ORM, G: Rows/sec:   95364.83
+Tortoise ORM, H: Rows/sec:   89767.66
+Tortoise ORM, I: Rows/sec:    3952.80
+Tortoise ORM, J: Rows/sec:    4121.58
+Tortoise ORM, K: Rows/sec:    3951.62
+Piccolo, A: Rows/sec:      49.46
+Piccolo, B: Rows/sec:     220.91
+Piccolo, C: Rows/sec:     221.49
+Piccolo, D: Rows/sec:   44308.06
+Piccolo, E: Rows/sec:   20141.41
+Piccolo, F: Rows/sec:    2250.83
+Piccolo, G: Rows/sec:   52546.81
+Piccolo, H: Rows/sec:   51098.95
+Piccolo, I: Rows/sec:     539.71
+Piccolo, J: Rows/sec:     540.42
+Piccolo, K: Rows/sec:     540.71
+ormar, A: Rows/sec:      48.39
+ormar, B: Rows/sec:     218.97
+ormar, C: Rows/sec:     279.55
+ormar, D: Rows/sec:   26548.97
+ormar, E: Rows/sec:   12514.40
+ormar, F: Rows/sec:    1487.52
+ormar, G: Rows/sec:   34181.18
+ormar, H: Rows/sec:   33228.70
+ormar, I: Rows/sec:     533.39
+ormar, J: Rows/sec:     535.07
+ormar, K: Rows/sec:     537.87
+SQLModel, A: Rows/sec:      53.37
+SQLModel, B: Rows/sec:    4856.43
+SQLModel, C: Rows/sec:    4836.77
+SQLModel, D: Rows/sec:  191710.40
+SQLModel, E: Rows/sec:   67200.90
+SQLModel, F: Rows/sec:   10388.50
+SQLModel, G: Rows/sec:  139710.78
+SQLModel, H: Rows/sec:  443700.84
+SQLModel, I: Rows/sec:   12138.99
+SQLModel, J: Rows/sec:   13442.13
+SQLModel, K: Rows/sec:   14743.93
+SQLModel async, A: Rows/sec:      48.78
+SQLModel async, B: Rows/sec:     220.57
+SQLModel async, C: Rows/sec:     220.83
+SQLModel async, D: Rows/sec:   46015.40
+SQLModel async, E: Rows/sec:   21433.39
+SQLModel async, F: Rows/sec:    3460.26
+SQLModel async, G: Rows/sec:   40033.83
+SQLModel async, H: Rows/sec:   52894.94
+SQLModel async, I: Rows/sec:     448.66
+SQLModel async, J: Rows/sec:     449.54
+SQLModel async, K: Rows/sec:     449.81
+ObjectBox, A: Rows/sec:     234.79
+ObjectBox, B: Rows/sec:   12024.95
+ObjectBox, C: Rows/sec:   12261.18
+ObjectBox, D: Rows/sec:  445365.52
+ObjectBox, E: Rows/sec:  309346.68
+ObjectBox, F: Rows/sec:  197054.45
+ObjectBox, I: Rows/sec:   32339.34
+ObjectBox, J: Rows/sec:   33170.54
+ObjectBox, K: Rows/sec:   69885.65
