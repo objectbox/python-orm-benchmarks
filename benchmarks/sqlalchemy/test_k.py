@@ -1,3 +1,4 @@
+import gc
 import os
 import time
 from random import choice
@@ -14,6 +15,12 @@ session = Session()
 
 objs = list(session.query(Journal).all())
 count = len(objs)
+
+# Settle the GC: collect leftovers, keep existing objects out of collections while timed
+
+gc.collect()
+
+gc.freeze()
 
 start = time.time()
 

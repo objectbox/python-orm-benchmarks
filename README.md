@@ -39,6 +39,8 @@ Comprehensive performance benchmarks comparing popular Python ORMs across Postgr
 | J | Update: Partial | Update a single field |
 | K | Delete | Delete a single row |
 
+Only persisting is timed: the insert operations create the unsaved objects before the timer starts, and the update operations choose the new values before it, so creating objects (including field defaults) and generating test data don't count. SQLObject inserts the row when it creates the object, so for SQLObject only the field values are prepared; peewee's bulk insert prepares row tuples and applies defaults while inserting. Right before the timer starts, each test runs `gc.collect()` and `gc.freeze()`, so garbage from the preparation isn't collected while timed. The PostgreSQL/MySQL results predate these changes and include creating the objects.
+
 ## Test Models
 
 **Test 1 — Simple model** (4 fields): `id`, `timestamp`, `level` (indexed), `text` (indexed)

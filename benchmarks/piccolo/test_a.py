@@ -1,4 +1,5 @@
 import asyncio
+import gc
 import os
 import time
 from random import choice
@@ -11,14 +12,28 @@ count = int(os.environ.get("ITERATIONS", "1000"))
 count = int(count // concurrents) * concurrents
 
 
-async def _runtest(count):
-    for i in range(count):
-        journal = Journal(level=choice(LEVEL_CHOICE), text=f"Insert from A, item {i}")
+async def _runtest(objs):
+    for journal in objs:
         await journal.save()
 
 
 async def runtest(loopstr):
+    # Objects are created before the timer: the benchmark measures persisting, not creating them
+    batches = [
+        [
+            Journal(level=choice(LEVEL_CHOICE), text=f"Insert from A, item {i}")
+            for i in range(count // concurrents)
+        ]
+        for _ in range(concurrents)
+    ]
+
+    # Settle the GC: collect leftovers, keep existing objects out of collections while timed
+
+    gc.collect()
+
+    gc.freeze()
+
     start = time.time()
-    await asyncio.gather(*[_runtest(count // concurrents) for _ in range(concurrents)])
+    await asyncio.gather(*[_runtest(objs) for objs in batches])
     now = time.time()
     print(f"Piccolo{loopstr}, A: Rows/sec: {count / (now - start): 10.2f}")

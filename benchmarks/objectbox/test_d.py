@@ -1,8 +1,12 @@
+import gc
 import time
 
 from models import ORM_NAME, Journal, box, find
 
 LEVEL_CHOICE = [10, 20, 30, 40, 50]
+# Settle the GC: collect leftovers, keep existing objects out of collections while timed
+gc.collect()
+gc.freeze()
 start = time.time()
 
 # The query is built once and re-run with a new parameter, the idiomatic ObjectBox way

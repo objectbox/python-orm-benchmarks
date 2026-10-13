@@ -1,3 +1,4 @@
+import gc
 import os
 import time
 from random import randrange
@@ -6,6 +7,9 @@ from models import ORM_NAME, Journal, box, find
 
 LEVEL_CHOICE = [10, 20, 30, 40, 50]
 iters = int(os.environ.get("ITERATIONS", "1000"))
+# Settle the GC: collect leftovers, keep existing objects out of collections while timed
+gc.collect()
+gc.freeze()
 start = time.time()
 
 query = box.query(Journal.level.equals(LEVEL_CHOICE[0])).build()

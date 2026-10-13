@@ -1,3 +1,4 @@
+import gc
 import os
 import time
 from random import choice
@@ -7,6 +8,15 @@ from pony.orm import commit, db_session
 
 LEVEL_CHOICE = [10, 20, 30, 40, 50]
 count = int(os.environ.get("ITERATIONS", "1000"))
+
+
+# Settle the GC: collect leftovers, keep existing objects out of collections while timed
+
+
+gc.collect()
+
+
+gc.freeze()
 
 
 start = now = time.time()

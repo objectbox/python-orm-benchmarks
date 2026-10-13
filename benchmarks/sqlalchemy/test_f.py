@@ -1,3 +1,4 @@
+import gc
 import os
 import time
 from random import randint
@@ -12,6 +13,12 @@ count *= 2
 
 
 Session = sessionmaker(bind=engine)
+
+# Settle the GC: collect leftovers, keep existing objects out of collections while timed
+
+gc.collect()
+
+gc.freeze()
 
 start = time.time()
 session = Session()

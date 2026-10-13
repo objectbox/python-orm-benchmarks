@@ -1,3 +1,4 @@
+import gc
 import os
 import time
 from random import randint
@@ -8,6 +9,9 @@ from pony.orm import db_session, select
 count = int(os.environ.get("ITERATIONS", "1000"))
 maxval = count - 1
 count *= 2
+# Settle the GC: collect leftovers, keep existing objects out of collections while timed
+gc.collect()
+gc.freeze()
 start = time.time()
 
 

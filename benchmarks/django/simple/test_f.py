@@ -5,6 +5,7 @@ try:
 finally:
     pass
 
+import gc
 import os
 import time
 from random import randint
@@ -14,6 +15,9 @@ from simple.models import Journal
 count = int(os.environ.get("ITERATIONS", "1000"))
 maxval = count - 1
 count *= 2
+# Settle the GC: collect leftovers, keep existing objects out of collections while timed
+gc.collect()
+gc.freeze()
 start = time.time()
 
 

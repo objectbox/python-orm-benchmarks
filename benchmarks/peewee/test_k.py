@@ -1,3 +1,4 @@
+import gc
 import time
 from random import choice
 
@@ -8,6 +9,12 @@ LEVEL_CHOICE = [10, 20, 30, 40, 50]
 
 objs = list(Journal.select())
 count = len(objs)
+
+# Settle the GC: collect leftovers, keep existing objects out of collections while timed
+
+gc.collect()
+
+gc.freeze()
 
 start = time.time()
 

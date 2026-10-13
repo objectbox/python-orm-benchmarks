@@ -1,3 +1,4 @@
+import gc
 import os
 import time
 from random import choice
@@ -8,10 +9,19 @@ LEVEL_CHOICE = [10, 20, 30, 40, 50]
 count = int(os.environ.get("ITERATIONS", "1000"))
 
 
+# Objects are created before the timer: the benchmark measures persisting them, not creating them
+objs = [
+    new_journal(level=choice(LEVEL_CHOICE), text=f"Insert from C, item {i}") for i in range(count)
+]
+
+# Settle the GC: collect leftovers, keep existing objects out of collections while timed
+
+gc.collect()
+
+gc.freeze()
+
 start = now = time.time()
-put(
-    [new_journal(level=choice(LEVEL_CHOICE), text=f"Insert from C, item {i}") for i in range(count)]
-)
+put(objs)
 now = time.time()
 
 print(f"{ORM_NAME}, C: Rows/sec: {count / (now - start): 10.2f}")

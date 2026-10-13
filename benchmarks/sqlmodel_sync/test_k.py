@@ -1,3 +1,4 @@
+import gc
 import time
 
 from models import Journal, engine
@@ -6,6 +7,12 @@ from sqlmodel import Session, select
 with Session(engine) as session:
     objs = session.exec(select(Journal)).all()
     count = len(objs)
+
+    # Settle the GC: collect leftovers, keep existing objects out of collections while timed
+
+    gc.collect()
+
+    gc.freeze()
 
     start = time.time()
     for obj in objs:

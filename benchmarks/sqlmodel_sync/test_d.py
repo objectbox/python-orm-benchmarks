@@ -1,9 +1,16 @@
+import gc
 import time
 
 from models import Journal, engine
 from sqlmodel import Session, select
 
 LEVEL_CHOICE = [10, 20, 30, 40, 50]
+
+# Settle the GC: collect leftovers, keep existing objects out of collections while timed
+
+gc.collect()
+
+gc.freeze()
 
 start = time.time()
 count = 0

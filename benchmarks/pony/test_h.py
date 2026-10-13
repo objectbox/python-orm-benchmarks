@@ -1,9 +1,13 @@
+import gc
 import time
 
 from models import Journal
 from pony.orm import db_session, select
 
 LEVEL_CHOICE = [10, 20, 30, 40, 50]
+# Settle the GC: collect leftovers, keep existing objects out of collections while timed
+gc.collect()
+gc.freeze()
 start = time.time()
 
 

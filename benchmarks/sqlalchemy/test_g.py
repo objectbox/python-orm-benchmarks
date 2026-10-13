@@ -1,3 +1,4 @@
+import gc
 import os
 import time
 
@@ -9,6 +10,12 @@ count = int(os.environ.get("ITERATIONS", "1000"))
 
 
 Session = sessionmaker(bind=engine)
+
+# Settle the GC: collect leftovers, keep existing objects out of collections while timed
+
+gc.collect()
+
+gc.freeze()
 
 start = time.time()
 session = Session()

@@ -1,4 +1,5 @@
 import asyncio
+import gc
 import os
 import time
 from random import randrange
@@ -22,6 +23,9 @@ async def _runtest(_iters) -> int:
 
 
 async def runtest(loopstr):
+    # Settle the GC: collect leftovers, keep existing objects out of collections while timed
+    gc.collect()
+    gc.freeze()
     start = now = time.time()
     count = 0
 
