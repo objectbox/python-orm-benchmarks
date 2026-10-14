@@ -13,11 +13,11 @@ uv venv --python 3.14 && source .venv/bin/activate
 uv pip install --no-sources --find-links wheels -r pyproject.toml
 ```
 
-`objectbox==5.0.0b1` is an unreleased beta that is not on PyPI, so its wheels must be in `wheels/` (gitignored, not committed). They are built from objectbox-python branch `fast-flatbuffers-builder` @ `fc7c0be` (not pushed), which includes the experimental codegen for puts and reads:
+`objectbox==5.0.0b1` is an unreleased beta that is not on PyPI, so its wheels must be in `wheels/` (gitignored, not committed). They are built from objectbox-python branch `fast-flatbuffers-builder` @ `0ac38fa` (not pushed), which includes the experimental codegen for puts and reads:
 ```sh
 mkdir -p wheels && cp ~/dev/objectbox-python/dist/*.whl wheels/
 ```
-`make build` in objectbox-python replaces `dist/`. The version string doesn't change between builds, so reinstall with `uv pip install --force-reinstall --no-deps wheels/objectbox-5.0.0b1-py3-none-any.whl`. Wheels built from other branches also carry version 5.0.0b1 but lack the codegen. Expected sha256 for Linux x86_64: `objectbox-5.0.0b1-py3-none-any.whl` `01c34479fdddada0ae318182ecafe65cef73403572c0e75d3ea8fb9e4466c4f7`, `objectbox_clib-5.3.2-py3-none-manylinux_2_28_x86_64.whl` `735ff58e7d71212922378bbc9d076b5ad09d1391b6874fdff448849af65e6ab0`.
+`make build` in objectbox-python replaces `dist/`. The version string doesn't change between builds, so reinstall with `uv pip install --force-reinstall --no-deps wheels/objectbox-5.0.0b1-py3-none-any.whl`. Wheels built from other branches also carry version 5.0.0b1 but lack the codegen. Expected sha256 for Linux x86_64: `objectbox-5.0.0b1-py3-none-any.whl` `ada4584433c4737bdc1f2cb11ba38df1f9b51ed3d5d13fa7f41043524d5e95db`, `objectbox_clib-5.3.2-py3-none-manylinux_2_28_x86_64.whl` `735ff58e7d71212922378bbc9d076b5ad09d1391b6874fdff448849af65e6ab0` (built with `fc7c0be`; later rebuilds of the clib wheel have a different sha256 but the same C library).
 
 Use Python 3.14 to match the published results. Without `--python`, uv picks whatever interpreter it already has, which may be older. SQLite is the version bundled with the Python build (3.53.1 with uv's CPython 3.14.6), not a pip package; `smoke.py` prints the version in use. pydantic is held below 2.14 by ormar's version constraint.
 

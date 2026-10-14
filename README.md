@@ -189,7 +189,7 @@ MySQL 8 in Docker. Driver: `asyncmy` for Tortoise, `aiomysql` for SA async / orm
 
 SQLite on local filesystem (`/tmp/db.sqlite3`). This benchmark is inherently single-threaded due to SQLite's write lock — async ORMs pay overhead without concurrency benefit. These are cold numbers; see [Results: SQLite, warm](#results-sqlite-warm) for runs with a warm-up run before each operation.
 
-> **Environment (SQLite results only):** Python 3.14.6, SQLite 3.53.1 (bundled with uv's CPython build), Linux x86_64 (AMD Ryzen 9 5950X, ext4 on NVMe), 100 iterations per operation, CPU frequency governor `performance`, 1-minute load average below 1 before each ORM run. Each value is the median of 5 full runs (2026-10-13). These numbers come from a different machine than the PostgreSQL/MySQL results, so don't compare them across sections. SQLite runs with `synchronous=FULL` (its compiled-in default), so every committed transaction is synced to disk, as with ObjectBox.
+> **Environment (SQLite results only):** Python 3.14.6, SQLite 3.53.1 (bundled with uv's CPython build), Linux x86_64 (AMD Ryzen 9 5950X, ext4 on NVMe), 100 iterations per operation, CPU frequency governor `performance`, 1-minute load average below 1 before each ORM run. Each value is the median of 5 full runs (2026-10-13; ObjectBox: 5 runs of its own with a newer build on 2026-10-14). These numbers come from a different machine than the PostgreSQL/MySQL results, so don't compare them across sections. SQLite runs with `synchronous=FULL` (its compiled-in default), so every committed transaction is synced to disk, as with ObjectBox.
 
 ### Overview
 
@@ -201,18 +201,18 @@ SQLite on local filesystem (`/tmp/db.sqlite3`). This benchmark is inherently sin
 
 | Operation | Django | peewee | SA ORM | SA ORM async | SQLObject | Tortoise ORM | Piccolo | ormar | SQLModel | SQLModel async | ObjectBox | Best |
 |-----------|--------|--------|--------|--------------|-----------|--------------|---------|-------|----------|----------------|-----------|------|
-| Insert: Single | 54 | 160 | 53 | 49 | 54 | 162 | 49 | 49 | 53 | 49 | **243** | ObjectBox |
-| Insert: Batch | 2,869 | 5,901 | 4,116 | 221 | 3,482 | 1,493 | 221 | 219 | 3,271 | 221 | **11,471** | ObjectBox |
-| Insert: Bulk | 3,384 | 7,417 | 3,471 | 221 | — | 1,597 | 222 | 323 | 3,252 | 221 | **11,562** | ObjectBox |
-| Filter: Large | 163,785 | 219,912 | 179,315 | 42,766 | 77,852 | 81,178 | 46,554 | 28,937 | 171,616 | 43,344 | **426,641** | ObjectBox |
-| Filter: Small | 52,070 | 82,205 | 56,233 | 21,496 | 66,533 | 52,032 | 21,985 | 12,661 | 49,489 | 19,997 | **258,395** | ObjectBox |
-| Get | 7,055 | 11,655 | 8,151 | 3,532 | 14,765 | 8,236 | 2,452 | 1,528 | 9,418 | 3,463 | **145,762** | ObjectBox |
+| Insert: Single | 54 | 160 | 53 | 49 | 54 | 162 | 49 | 49 | 53 | 49 | **245** | ObjectBox |
+| Insert: Batch | 2,869 | 5,901 | 4,116 | 221 | 3,482 | 1,493 | 221 | 219 | 3,271 | 221 | **11,470** | ObjectBox |
+| Insert: Bulk | 3,384 | 7,417 | 3,471 | 221 | — | 1,597 | 222 | 323 | 3,252 | 221 | **11,646** | ObjectBox |
+| Filter: Large | 163,785 | 219,912 | 179,315 | 42,766 | 77,852 | 81,178 | 46,554 | 28,937 | 171,616 | 43,344 | **466,051** | ObjectBox |
+| Filter: Small | 52,070 | 82,205 | 56,233 | 21,496 | 66,533 | 52,032 | 21,985 | 12,661 | 49,489 | 19,997 | **261,538** | ObjectBox |
+| Get | 7,055 | 11,655 | 8,151 | 3,532 | 14,765 | 8,236 | 2,452 | 1,528 | 9,418 | 3,463 | **152,465** | ObjectBox |
 | Filter: dict | 230,363 | **306,489** | 173,066 | 42,957 | — | 98,329 | 55,320 | 35,905 | 132,139 | 38,184 | — | peewee |
 | Filter: tuple | 238,213 | 308,027 | 265,692 | 58,120 | — | 93,615 | 53,080 | 36,046 | **392,309** | 50,022 | — | SQLModel |
-| Update: Whole | 5,386 | 8,570 | 8,757 | 391 | 6,234 | 3,413 | 540 | 454 | 8,500 | 390 | **16,263** | ObjectBox |
-| Update: Partial | 5,817 | 18,062 | 9,500 | 449 | 9,609 | 3,968 | 541 | 536 | 9,373 | 449 | **32,310** | ObjectBox |
-| Delete | 5,956 | 22,753 | 9,947 | 449 | 54 | 4,005 | 542 | 538 | 9,919 | 449 | **70,870** | ObjectBox |
-| **Geometric Mean** | 11,118 | 21,659 | 13,338 | 1,946 | 3,829 | 7,821 | 2,059 | 1,692 | 13,042 | 1,886 | **29,932** | **ObjectBox** |
+| Update: Whole | 5,386 | 8,570 | 8,757 | 391 | 6,234 | 3,413 | 540 | 454 | 8,500 | 390 | **16,456** | ObjectBox |
+| Update: Partial | 5,817 | 18,062 | 9,500 | 449 | 9,609 | 3,968 | 541 | 536 | 9,373 | 449 | **32,652** | ObjectBox |
+| Delete | 5,956 | 22,753 | 9,947 | 449 | 54 | 4,005 | 542 | 538 | 9,919 | 449 | **71,453** | ObjectBox |
+| **Geometric Mean** | 11,118 | 21,659 | 13,338 | 1,946 | 3,829 | 7,821 | 2,059 | 1,692 | 13,042 | 1,886 | **30,568** | **ObjectBox** |
 
 ### Test 2: FK Relations
 
@@ -220,18 +220,18 @@ SQLite on local filesystem (`/tmp/db.sqlite3`). This benchmark is inherently sin
 
 | Operation | Django | peewee | SA ORM | SA ORM async | SQLObject | Tortoise ORM | Piccolo | ormar | SQLModel | SQLModel async | ObjectBox | Best |
 |-----------|--------|--------|--------|--------------|-----------|--------------|---------|-------|----------|----------------|-----------|------|
-| Insert: Single | 53 | 160 | 53 | 49 | 53 | 162 | 49 | 47 | 53 | 49 | **236** | ObjectBox |
-| Insert: Batch | 2,824 | 5,878 | 3,119 | 220 | 3,366 | 1,513 | 221 | 219 | 3,259 | 220 | **11,403** | ObjectBox |
-| Insert: Bulk | 3,377 | 7,394 | 3,490 | 220 | — | 1,598 | 221 | 266 | 3,238 | 221 | **11,525** | ObjectBox |
-| Filter: Large | 149,386 | 187,374 | 146,770 | 41,817 | 75,359 | 83,536 | 42,500 | 27,577 | 163,680 | 37,405 | **393,844** | ObjectBox |
-| Filter: Small | 54,094 | 81,615 | 38,404 | 21,975 | 64,355 | 52,755 | 19,009 | 11,595 | 49,750 | 19,526 | **233,810** | ObjectBox |
-| Get | 6,779 | 10,834 | 6,688 | 3,419 | 14,455 | 9,020 | 2,266 | 1,488 | 9,020 | 3,356 | **137,631** | ObjectBox |
+| Insert: Single | 53 | 160 | 53 | 49 | 53 | 162 | 49 | 47 | 53 | 49 | **237** | ObjectBox |
+| Insert: Batch | 2,824 | 5,878 | 3,119 | 220 | 3,366 | 1,513 | 221 | 219 | 3,259 | 220 | **11,376** | ObjectBox |
+| Insert: Bulk | 3,377 | 7,394 | 3,490 | 220 | — | 1,598 | 221 | 266 | 3,238 | 221 | **11,607** | ObjectBox |
+| Filter: Large | 149,386 | 187,374 | 146,770 | 41,817 | 75,359 | 83,536 | 42,500 | 27,577 | 163,680 | 37,405 | **454,470** | ObjectBox |
+| Filter: Small | 54,094 | 81,615 | 38,404 | 21,975 | 64,355 | 52,755 | 19,009 | 11,595 | 49,750 | 19,526 | **259,101** | ObjectBox |
+| Get | 6,779 | 10,834 | 6,688 | 3,419 | 14,455 | 9,020 | 2,266 | 1,488 | 9,020 | 3,356 | **147,169** | ObjectBox |
 | Filter: dict | 208,769 | **277,505** | 137,061 | 40,323 | — | 103,951 | 54,267 | 37,536 | 132,333 | 36,620 | — | peewee |
 | Filter: tuple | 219,620 | 285,101 | 198,056 | 46,667 | — | 99,150 | 52,300 | 34,442 | **376,903** | 48,105 | — | SQLModel |
-| Update: Whole | 5,249 | 8,076 | 7,912 | 390 | 6,180 | 3,511 | 541 | 453 | 8,491 | 390 | **16,249** | ObjectBox |
-| Update: Partial | 5,745 | 18,046 | 8,491 | 447 | 9,476 | 4,115 | 541 | 535 | 9,244 | 449 | **31,863** | ObjectBox |
-| Delete | 1,963 | 22,881 | 2,091 | 332 | 53 | 4,025 | 541 | 538 | 9,923 | 448 | **68,067** | ObjectBox |
-| **Geometric Mean** | 9,751 | 20,732 | 9,831 | 1,837 | 3,752 | 8,059 | 1,992 | 1,632 | 12,861 | 1,836 | **28,847** | **ObjectBox** |
+| Update: Whole | 5,249 | 8,076 | 7,912 | 390 | 6,180 | 3,511 | 541 | 453 | 8,491 | 390 | **16,354** | ObjectBox |
+| Update: Partial | 5,745 | 18,046 | 8,491 | 447 | 9,476 | 4,115 | 541 | 535 | 9,244 | 449 | **32,274** | ObjectBox |
+| Delete | 1,963 | 22,881 | 2,091 | 332 | 53 | 4,025 | 541 | 538 | 9,923 | 448 | **68,703** | ObjectBox |
+| **Geometric Mean** | 9,751 | 20,732 | 9,831 | 1,837 | 3,752 | 8,059 | 1,992 | 1,632 | 12,861 | 1,836 | **30,001** | **ObjectBox** |
 
 ### Test 3: Wide Model (32+ fields)
 
@@ -239,18 +239,18 @@ SQLite on local filesystem (`/tmp/db.sqlite3`). This benchmark is inherently sin
 
 | Operation | Django | peewee | SA ORM | SA ORM async | SQLObject | Tortoise ORM | Piccolo | ormar | SQLModel | SQLModel async | ObjectBox | Best |
 |-----------|--------|--------|--------|--------------|-----------|--------------|---------|-------|----------|----------------|-----------|------|
-| Insert: Single | 53 | 158 | 53 | 49 | 53 | 161 | 49 | 48 | 52 | 49 | **207** | ObjectBox |
-| Insert: Batch | 2,201 | 4,279 | 2,964 | 219 | 2,202 | 1,435 | 220 | 175 | 2,935 | 219 | **8,791** | ObjectBox |
-| Insert: Bulk | 2,900 | 4,411 | 3,306 | 220 | — | 1,559 | 219 | 266 | 2,922 | 220 | **8,998** | ObjectBox |
-| Filter: Large | 49,585 | 47,698 | 72,519 | 15,039 | 39,928 | 32,739 | 10,543 | 8,549 | 66,101 | 11,509 | **89,395** | ObjectBox |
-| Filter: Small | 23,943 | 26,143 | 30,285 | 10,365 | 35,240 | 25,158 | 7,744 | 6,072 | 31,082 | 8,892 | **64,847** | ObjectBox |
-| Get | 3,737 | 3,969 | 6,506 | 2,776 | 9,591 | 6,094 | 1,674 | 1,086 | 7,214 | 2,759 | **42,621** | ObjectBox |
+| Insert: Single | 53 | 158 | 53 | 49 | 53 | 161 | 49 | 48 | 52 | 49 | **213** | ObjectBox |
+| Insert: Batch | 2,201 | 4,279 | 2,964 | 219 | 2,202 | 1,435 | 220 | 175 | 2,935 | 219 | **8,832** | ObjectBox |
+| Insert: Bulk | 2,900 | 4,411 | 3,306 | 220 | — | 1,559 | 219 | 266 | 2,922 | 220 | **9,148** | ObjectBox |
+| Filter: Large | 49,585 | 47,698 | 72,519 | 15,039 | 39,928 | 32,739 | 10,543 | 8,549 | 66,101 | 11,509 | **97,108** | ObjectBox |
+| Filter: Small | 23,943 | 26,143 | 30,285 | 10,365 | 35,240 | 25,158 | 7,744 | 6,072 | 31,082 | 8,892 | **72,679** | ObjectBox |
+| Get | 3,737 | 3,969 | 6,506 | 2,776 | 9,591 | 6,094 | 1,674 | 1,086 | 7,214 | 2,759 | **45,006** | ObjectBox |
 | Filter: dict | 59,527 | **73,446** | 60,510 | 11,868 | — | 43,164 | 14,769 | 11,426 | 49,635 | 12,712 | — | peewee |
 | Filter: tuple | 65,129 | 76,450 | 82,376 | 14,592 | — | 39,031 | 13,275 | 11,799 | **91,891** | 12,570 | — | SQLModel |
-| Update: Whole | 3,841 | 3,871 | 8,022 | 389 | 6,031 | 3,286 | 537 | 387 | 7,875 | 389 | **13,039** | ObjectBox |
-| Update: Partial | 5,268 | 17,387 | 8,702 | 446 | 9,158 | 4,061 | 536 | 535 | 8,664 | 447 | **21,437** | ObjectBox |
-| Delete | 5,778 | 22,786 | 9,769 | 447 | 53 | 4,106 | 541 | 537 | 9,665 | 447 | **68,256** | ObjectBox |
-| **Geometric Mean** | 6,354 | 10,218 | 8,822 | 1,268 | 2,872 | 5,590 | 1,231 | 1,059 | 8,640 | 1,211 | **16,212** | **ObjectBox** |
+| Update: Whole | 3,841 | 3,871 | 8,022 | 389 | 6,031 | 3,286 | 537 | 387 | 7,875 | 389 | **13,150** | ObjectBox |
+| Update: Partial | 5,268 | 17,387 | 8,702 | 446 | 9,158 | 4,061 | 536 | 535 | 8,664 | 447 | **21,846** | ObjectBox |
+| Delete | 5,778 | 22,786 | 9,769 | 447 | 53 | 4,106 | 541 | 537 | 9,665 | 447 | **69,766** | ObjectBox |
+| **Geometric Mean** | 6,354 | 10,218 | 8,822 | 1,268 | 2,872 | 5,590 | 1,231 | 1,059 | 8,640 | 1,211 | **16,849** | **ObjectBox** |
 
 ## Results: SQLite, warm
 
@@ -270,7 +270,7 @@ Geometric means, cold vs. warm:
 | ormar | 1,692 | 1,717 (×1.01) | 1,632 | 1,655 (×1.01) | 1,059 | 1,075 (×1.02) |
 | SQLModel | 13,042 | 16,463 (×1.26) | 12,861 | 16,521 (×1.28) | 8,640 | 10,729 (×1.24) |
 | SQLModel async | 1,886 | 1,950 (×1.03) | 1,836 | 1,951 (×1.06) | 1,211 | 1,229 (×1.01) |
-| ObjectBox | 29,932 | **35,184** (×1.18) | 28,847 | **34,567** (×1.20) | 16,212 | **20,299** (×1.25) |
+| ObjectBox | 30,568 | **36,380** (×1.19) | 30,001 | **35,298** (×1.18) | 16,849 | **20,883** (×1.24) |
 
 ### Overview
 
@@ -282,18 +282,18 @@ Geometric means, cold vs. warm:
 
 | Operation | Django | peewee | SA ORM | SA ORM async | SQLObject | Tortoise ORM | Piccolo | ormar | SQLModel | SQLModel async | ObjectBox | Best |
 |-----------|--------|--------|--------|--------------|-----------|--------------|---------|-------|----------|----------------|-----------|------|
-| Insert: Single | 53 | 161 | 53 | 49 | 54 | 163 | 49 | 49 | 53 | 49 | **244** | ObjectBox |
-| Insert: Batch | 4,004 | 9,747 | 4,901 | 221 | 3,908 | 1,514 | 221 | 219 | 4,826 | 221 | **12,188** | ObjectBox |
-| Insert: Bulk | 5,093 | **14,165** | 5,229 | 221 | — | 1,309 | 222 | 352 | 4,847 | 221 | 12,161 | peewee |
-| Filter: Large | 172,458 | 228,104 | 211,780 | 44,184 | 86,531 | 84,205 | 45,059 | 30,096 | 192,426 | 44,280 | **460,221** | ObjectBox |
-| Filter: Small | 59,954 | 94,960 | 62,115 | 22,358 | 78,105 | 52,400 | 21,010 | 12,290 | 59,653 | 19,974 | **312,929** | ObjectBox |
-| Get | 7,278 | 12,283 | 8,825 | 3,545 | 16,385 | 9,158 | 2,394 | 1,529 | 10,463 | 3,512 | **201,746** | ObjectBox |
+| Insert: Single | 53 | 161 | 53 | 49 | 54 | 163 | 49 | 49 | 53 | 49 | **245** | ObjectBox |
+| Insert: Batch | 4,004 | 9,747 | 4,901 | 221 | 3,908 | 1,514 | 221 | 219 | 4,826 | 221 | **12,026** | ObjectBox |
+| Insert: Bulk | 5,093 | **14,165** | 5,229 | 221 | — | 1,309 | 222 | 352 | 4,847 | 221 | 12,215 | peewee |
+| Filter: Large | 172,458 | 228,104 | 211,780 | 44,184 | 86,531 | 84,205 | 45,059 | 30,096 | 192,426 | 44,280 | **509,904** | ObjectBox |
+| Filter: Small | 59,954 | 94,960 | 62,115 | 22,358 | 78,105 | 52,400 | 21,010 | 12,290 | 59,653 | 19,974 | **346,181** | ObjectBox |
+| Get | 7,278 | 12,283 | 8,825 | 3,545 | 16,385 | 9,158 | 2,394 | 1,529 | 10,463 | 3,512 | **219,081** | ObjectBox |
 | Filter: dict | 249,829 | **326,329** | 184,271 | 42,780 | — | 105,672 | 52,363 | 34,339 | 142,605 | 43,639 | — | peewee |
 | Filter: tuple | 262,401 | 327,825 | 315,559 | 54,954 | — | 102,306 | 52,020 | 34,053 | **471,270** | 53,162 | — | SQLModel |
-| Update: Whole | 6,490 | 15,022 | 12,347 | 449 | 8,604 | 3,993 | 542 | 534 | 12,024 | 449 | **32,563** | ObjectBox |
-| Update: Partial | 6,984 | 18,578 | 13,729 | 449 | 9,729 | 4,122 | 542 | 535 | 13,535 | 449 | **33,499** | ObjectBox |
-| Delete | 7,298 | 23,752 | 14,737 | 449 | 54 | 4,159 | 543 | 537 | 14,680 | 450 | **72,001** | ObjectBox |
-| **Geometric Mean** | 12,987 | 26,324 | 16,392 | 1,974 | 4,242 | 8,085 | 2,027 | 1,717 | 16,463 | 1,950 | **35,184** | **ObjectBox** |
+| Update: Whole | 6,490 | 15,022 | 12,347 | 449 | 8,604 | 3,993 | 542 | 534 | 12,024 | 449 | **32,658** | ObjectBox |
+| Update: Partial | 6,984 | 18,578 | 13,729 | 449 | 9,729 | 4,122 | 542 | 535 | 13,535 | 449 | **33,654** | ObjectBox |
+| Delete | 7,298 | 23,752 | 14,737 | 449 | 54 | 4,159 | 543 | 537 | 14,680 | 450 | **72,978** | ObjectBox |
+| **Geometric Mean** | 12,987 | 26,324 | 16,392 | 1,974 | 4,242 | 8,085 | 2,027 | 1,717 | 16,463 | 1,950 | **36,380** | **ObjectBox** |
 
 ### Test 2: FK Relations
 
@@ -301,18 +301,18 @@ Geometric means, cold vs. warm:
 
 | Operation | Django | peewee | SA ORM | SA ORM async | SQLObject | Tortoise ORM | Piccolo | ormar | SQLModel | SQLModel async | ObjectBox | Best |
 |-----------|--------|--------|--------|--------------|-----------|--------------|---------|-------|----------|----------------|-----------|------|
-| Insert: Single | 54 | 162 | 53 | 49 | 54 | 162 | 49 | 48 | 53 | 49 | **235** | ObjectBox |
-| Insert: Batch | 3,938 | 9,774 | 4,647 | 220 | 3,843 | 1,488 | 221 | 219 | 4,856 | 221 | **12,025** | ObjectBox |
-| Insert: Bulk | 5,056 | **14,239** | 5,190 | 220 | — | 1,311 | 221 | 280 | 4,837 | 221 | 12,261 | peewee |
-| Filter: Large | 157,910 | 191,547 | 205,680 | 40,254 | 84,432 | 76,845 | 44,308 | 26,549 | 191,710 | 46,015 | **445,366** | ObjectBox |
-| Filter: Small | 62,081 | 83,288 | 62,202 | 22,131 | 74,957 | 44,511 | 20,141 | 12,514 | 67,201 | 21,433 | **309,347** | ObjectBox |
-| Get | 7,029 | 10,828 | 8,439 | 3,382 | 15,951 | 8,026 | 2,251 | 1,488 | 10,388 | 3,460 | **197,054** | ObjectBox |
+| Insert: Single | 54 | 162 | 53 | 49 | 54 | 162 | 49 | 48 | 53 | 49 | **239** | ObjectBox |
+| Insert: Batch | 3,938 | 9,774 | 4,647 | 220 | 3,843 | 1,488 | 221 | 219 | 4,856 | 221 | **11,943** | ObjectBox |
+| Insert: Bulk | 5,056 | **14,239** | 5,190 | 220 | — | 1,311 | 221 | 280 | 4,837 | 221 | 12,170 | peewee |
+| Filter: Large | 157,910 | 191,547 | 205,680 | 40,254 | 84,432 | 76,845 | 44,308 | 26,549 | 191,710 | 46,015 | **483,995** | ObjectBox |
+| Filter: Small | 62,081 | 83,288 | 62,202 | 22,131 | 74,957 | 44,511 | 20,141 | 12,514 | 67,201 | 21,433 | **322,945** | ObjectBox |
+| Get | 7,029 | 10,828 | 8,439 | 3,382 | 15,951 | 8,026 | 2,251 | 1,488 | 10,388 | 3,460 | **206,820** | ObjectBox |
 | Filter: dict | 229,594 | **290,921** | 183,342 | 42,134 | — | 95,365 | 52,547 | 34,181 | 139,711 | 40,034 | — | peewee |
 | Filter: tuple | 239,483 | 293,575 | 308,382 | 46,874 | — | 89,768 | 51,099 | 33,229 | **443,701** | 52,895 | — | SQLModel |
-| Update: Whole | 6,279 | 13,575 | 11,102 | 448 | 8,667 | 3,953 | 540 | 533 | 12,139 | 449 | **32,339** | ObjectBox |
-| Update: Partial | 7,013 | 18,588 | 12,133 | 447 | 9,775 | 4,122 | 540 | 535 | 13,442 | 450 | **33,171** | ObjectBox |
-| Delete | 1,933 | 23,312 | 2,271 | 333 | 54 | 3,952 | 541 | 538 | 14,744 | 450 | **69,886** | ObjectBox |
-| **Geometric Mean** | 11,200 | 24,559 | 13,349 | 1,862 | 4,191 | 7,586 | 2,001 | 1,655 | 16,521 | 1,951 | **34,567** | **ObjectBox** |
+| Update: Whole | 6,279 | 13,575 | 11,102 | 448 | 8,667 | 3,953 | 540 | 533 | 12,139 | 449 | **32,535** | ObjectBox |
+| Update: Partial | 7,013 | 18,588 | 12,133 | 447 | 9,775 | 4,122 | 540 | 535 | 13,442 | 450 | **33,414** | ObjectBox |
+| Delete | 1,933 | 23,312 | 2,271 | 333 | 54 | 3,952 | 541 | 538 | 14,744 | 450 | **69,766** | ObjectBox |
+| **Geometric Mean** | 11,200 | 24,559 | 13,349 | 1,862 | 4,191 | 7,586 | 2,001 | 1,655 | 16,521 | 1,951 | **35,298** | **ObjectBox** |
 
 ### Test 3: Wide Model (32+ fields)
 
@@ -320,18 +320,18 @@ Geometric means, cold vs. warm:
 
 | Operation | Django | peewee | SA ORM | SA ORM async | SQLObject | Tortoise ORM | Piccolo | ormar | SQLModel | SQLModel async | ObjectBox | Best |
 |-----------|--------|--------|--------|--------------|-----------|--------------|---------|-------|----------|----------------|-----------|------|
-| Insert: Single | 53 | 159 | 53 | 49 | 54 | 161 | 49 | 46 | 53 | 49 | **211** | ObjectBox |
-| Insert: Batch | 2,835 | 6,156 | 4,413 | 220 | 2,965 | 1,443 | 220 | 175 | 4,344 | 219 | **10,561** | ObjectBox |
-| Insert: Bulk | 4,215 | 6,229 | 4,953 | 220 | — | 1,572 | 218 | 271 | 4,345 | 219 | **10,957** | ObjectBox |
-| Filter: Large | 52,574 | 48,380 | 83,627 | 16,526 | 42,335 | 33,010 | 10,545 | 9,374 | 71,886 | 11,830 | **96,905** | ObjectBox |
-| Filter: Small | 26,787 | 28,309 | 40,119 | 10,184 | 38,464 | 23,917 | 8,016 | 6,091 | 35,465 | 8,754 | **85,562** | ObjectBox |
-| Get | 3,876 | 3,991 | 7,757 | 2,881 | 10,636 | 6,016 | 1,667 | 1,091 | 8,537 | 2,749 | **74,222** | ObjectBox |
+| Insert: Single | 53 | 159 | 53 | 49 | 54 | 161 | 49 | 46 | 53 | 49 | **213** | ObjectBox |
+| Insert: Batch | 2,835 | 6,156 | 4,413 | 220 | 2,965 | 1,443 | 220 | 175 | 4,344 | 219 | **10,681** | ObjectBox |
+| Insert: Bulk | 4,215 | 6,229 | 4,953 | 220 | — | 1,572 | 218 | 271 | 4,345 | 219 | **11,006** | ObjectBox |
+| Filter: Large | 52,574 | 48,380 | 83,627 | 16,526 | 42,335 | 33,010 | 10,545 | 9,374 | 71,886 | 11,830 | **102,493** | ObjectBox |
+| Filter: Small | 26,787 | 28,309 | 40,119 | 10,184 | 38,464 | 23,917 | 8,016 | 6,091 | 35,465 | 8,754 | **91,891** | ObjectBox |
+| Get | 3,876 | 3,991 | 7,757 | 2,881 | 10,636 | 6,016 | 1,667 | 1,091 | 8,537 | 2,749 | **76,018** | ObjectBox |
 | Filter: dict | 62,095 | **75,773** | 66,733 | 13,238 | — | 41,920 | 13,069 | 10,373 | 52,647 | 10,976 | — | peewee |
 | Filter: tuple | 67,321 | 77,127 | 94,175 | 12,335 | — | 38,029 | 12,897 | 12,415 | **99,307** | 14,831 | — | SQLModel |
-| Update: Whole | 4,267 | 4,838 | 11,291 | 447 | 8,523 | 3,651 | 537 | 445 | 10,991 | 446 | **23,352** | ObjectBox |
-| Update: Partial | 6,376 | 17,483 | 12,555 | 447 | 9,517 | 4,093 | 537 | 534 | 12,381 | 447 | **23,701** | ObjectBox |
-| Delete | 7,072 | 22,858 | 14,053 | 447 | 54 | 4,154 | 541 | 538 | 14,029 | 447 | **70,237** | ObjectBox |
-| **Geometric Mean** | 7,223 | 11,284 | 11,285 | 1,291 | 3,236 | 5,605 | 1,219 | 1,075 | 10,729 | 1,229 | **20,299** | **ObjectBox** |
+| Update: Whole | 4,267 | 4,838 | 11,291 | 447 | 8,523 | 3,651 | 537 | 445 | 10,991 | 446 | **24,199** | ObjectBox |
+| Update: Partial | 6,376 | 17,483 | 12,555 | 447 | 9,517 | 4,093 | 537 | 534 | 12,381 | 447 | **24,349** | ObjectBox |
+| Delete | 7,072 | 22,858 | 14,053 | 447 | 54 | 4,154 | 541 | 538 | 14,029 | 447 | **71,421** | ObjectBox |
+| **Geometric Mean** | 7,223 | 11,284 | 11,285 | 1,291 | 3,236 | 5,605 | 1,219 | 1,075 | 10,729 | 1,229 | **20,883** | **ObjectBox** |
 
 ---
 
@@ -349,11 +349,11 @@ Tortoise ORM wins every test by a wide margin (2x over the runner-up). The `asyn
 
 On SQLite, async overhead hurts more than it helps — there is no concurrency to exploit due to SQLite's single-writer lock. Sync ORMs (peewee, SA ORM, SQLModel, Django, SQLObject) avoid the `aiosqlite` polling overhead and win handily. Among the SQL ORMs, peewee has the best geometric mean in all three tests, followed by sync SA ORM and sync SQLModel (SQLModel is ahead on Test 2, where SA ORM's model maps the relationships, which slows down its Delete). The sync variants of SA ORM and SQLModel are 2–8x faster than their async variants on reads and 13–22x on batch/bulk inserts, updates and deletes (6x for SA ORM's Delete on Test 2; single inserts, one synced commit each, are about the same). Sync SQLModel has the fastest Filter: tuple in all three tests; on the wide model (Test 3), SA ORM leads Filter: Large and Update: Whole among the SQL ORMs, and SQLObject leads Filter: Small and Get. Tortoise ORM remains the fastest async ORM on SQLite.
 
-ObjectBox (embedded object database, experimental codegen for writes and reads) has the best geometric mean in all three tests (29,932 vs peewee's 21,659, 28,847 vs 20,732 and 16,212 vs 10,218, i.e. 1.4–1.6x), though its mean leaves out Filter: dict/tuple, peewee's strongest operations. It wins every operation it runs in all three tests: Get by 4.4–9.9x over the runner-up (SQLObject), Filter: Small by 1.8–3.1x and Filter: Large by 1.2–2.1x. Single inserts (one synced commit each) are 1.3–1.5x ahead of peewee and Tortoise ORM; batch and bulk inserts, updates and deletes 1.2–3.1x ahead of the best SQL ORM. Its results are about as stable between runs as the SQL ORMs': the widest spreads are Update: Whole on Test 1, where one of the five runs was ~1.9x faster than the others, and Delete on Test 3, where one run was ~1.9x slower. These numbers are for objectbox-python branch `fast-flatbuffers-builder` @ `fc7c0be`. Earlier builds imported numpy on `import objectbox`, whose idle OpenBLAS threads kept spinning while the first test operations ran and made them up to 2x slower.
+ObjectBox (embedded object database, experimental codegen for writes and reads) has the best geometric mean in all three tests (30,568 vs peewee's 21,659, 30,001 vs 20,732 and 16,849 vs 10,218, i.e. 1.4–1.7x), though its mean leaves out Filter: dict/tuple, peewee's strongest operations. It wins every operation it runs in all three tests: Get by 4.7–10.3x over the runner-up (SQLObject), Filter: Small by 2.1–3.2x and Filter: Large by 1.3–2.4x. Single inserts (one synced commit each) are 1.3–1.5x ahead of peewee and Tortoise ORM; batch and bulk inserts, updates and deletes 1.3–3.1x ahead of the best SQL ORM. Its results are about as stable between runs as the SQL ORMs': the widest spread is Update: Whole on Test 2, where one of the five runs was ~1.7x faster than the others. These numbers are for objectbox-python branch `fast-flatbuffers-builder` @ `0ac38fa`; the previous build (`fc7c0be`), which read dates and strings a little slower, was 1–15% slower on reads and the same on writes. Earlier builds imported numpy on `import objectbox`, whose idle OpenBLAS threads kept spinning while the first test operations ran and made them up to 2x slower.
 
 ### SQLite, warm — sync ORMs gain, the order stays
 
-With a warm-up run, the sync ORMs' geometric means rise by 10–36%. The biggest gains are on batch/bulk inserts and Update: Whole (up to ~1.9x for peewee, 2x for ObjectBox's Update: Whole, 1.5x for SA ORM and SQLModel); Insert: Single, bound by one synced commit per row, doesn't change. The async ORMs stay within ±6%: they run all operations in one process anyway, so earlier operations already paid most one-time costs. ObjectBox has the best geometric mean in all three tests, as cold (35,184 / 34,567 / 20,299 vs peewee's 26,324 / 24,559 / 11,284). peewee is the fastest SQL ORM on Tests 1 and 2; on Test 3, SA ORM ties it (11,285 vs 11,284). Next come SQLModel and SA ORM (SQLModel ahead on Tests 1 and 2, on Test 1 by less than 1%). ObjectBox's lead on reads grows (Get 1.4–1.7x faster than cold, e.g. 201,746 vs 145,762 rows/sec on Test 1), while warm peewee overtakes it on Insert: Bulk in Tests 1 and 2 (14,165 vs 12,161 and 14,239 vs 12,261).
+With a warm-up run, the sync ORMs' geometric means rise by 10–36%. The biggest gains are on batch/bulk inserts and Update: Whole (up to ~1.9x for peewee, 2x for ObjectBox's Update: Whole, 1.5x for SA ORM and SQLModel); Insert: Single, bound by one synced commit per row, doesn't change. The async ORMs stay within ±6%: they run all operations in one process anyway, so earlier operations already paid most one-time costs. ObjectBox has the best geometric mean in all three tests, as cold (36,380 / 35,298 / 20,883 vs peewee's 26,324 / 24,559 / 11,284). peewee is the fastest SQL ORM on Tests 1 and 2; on Test 3, SA ORM ties it (11,285 vs 11,284). Next come SQLModel and SA ORM (SQLModel ahead on Tests 1 and 2, on Test 1 by less than 1%). ObjectBox's lead on reads grows (Get 1.4–1.7x faster than cold, e.g. 219,081 vs 152,465 rows/sec on Test 1), while warm peewee overtakes it on Insert: Bulk in Tests 1 and 2 (14,165 vs 12,215 and 14,239 vs 12,170).
 
 ### Key takeaways
 
@@ -362,7 +362,7 @@ With a warm-up run, the sync ORMs' geometric means rise by 10–36%. The biggest
 - **SA ORM async / SQLModel async**: Strong on reads but consistently slow on writes due to Session/UoW overhead (on SQLite, their sync variants don't share this write penalty). SQLModel tracks closely with SA ORM (expected — it's a thin wrapper around SQLAlchemy)
 - **ormar**: Pydantic validation overhead causes significant slowdown, especially on wide models (Test 3)
 - **SQLObject**: Missing bulk insert and dict/tuple filter operations, but surprisingly fast on single-row SQLite operations
-- **ObjectBox** (SQLite runs only): fastest in every operation it runs (reads 1.2–9.9x, writes 1.2–3.1x ahead of the best SQL ORM), best geometric mean (without the dict/tuple operations)
+- **ObjectBox** (SQLite runs only): fastest in every operation it runs (reads 1.3–10.3x, writes 1.3–3.1x ahead of the best SQL ORM), best geometric mean (without the dict/tuple operations)
 
 ## Running the benchmarks
 

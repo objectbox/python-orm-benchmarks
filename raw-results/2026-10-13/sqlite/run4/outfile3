@@ -130,12 +130,12 @@ SQLModel async, H: Rows/sec:   12570.22
 SQLModel async, I: Rows/sec:     389.59
 SQLModel async, J: Rows/sec:     447.12
 SQLModel async, K: Rows/sec:     448.54
-ObjectBox, A: Rows/sec:     204.62
-ObjectBox, B: Rows/sec:    8755.83
-ObjectBox, C: Rows/sec:    9089.79
-ObjectBox, D: Rows/sec:   89191.17
-ObjectBox, E: Rows/sec:   64846.59
-ObjectBox, F: Rows/sec:   42415.98
-ObjectBox, I: Rows/sec:   13025.11
-ObjectBox, J: Rows/sec:   21372.98
-ObjectBox, K: Rows/sec:   69407.65
+ObjectBox, A: Rows/sec:     208.35
+ObjectBox, B: Rows/sec:    8886.99
+ObjectBox, C: Rows/sec:    8821.01
+ObjectBox, D: Rows/sec:   97317.90
+ObjectBox, E: Rows/sec:   70059.11
+ObjectBox, F: Rows/sec:   45017.75
+ObjectBox, I: Rows/sec:   13006.27
+ObjectBox, J: Rows/sec:   21846.09
+ObjectBox, K: Rows/sec:   69975.04

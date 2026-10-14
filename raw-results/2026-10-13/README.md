@@ -7,6 +7,8 @@
 
 All ORMs ran together in each run: the 5 cold runs first, then the 5 warm runs.
 
+ObjectBox was rerun on 2026-10-14 with a newer build (`0ac38fa`, see Versions; faster codegen reads of dates and strings), 5 cold runs and then 5 warm runs, same settings: its runs replace the ObjectBox lines in each `run<n>/outfile<test>` and are appended at the end. The results of the earlier build (`fc7c0be`) are kept in `superseded/objectbox-fc7c0be/` (`sqlite/`, `sqlite-warm/`, each with runs and medians).
+
 ## Changes since 2026-10-12
 
 - Only persisting is timed: insert tests create the unsaved objects before the timer starts, update tests choose the new values before it (see "Timed section" in `AGENTS.md`).
@@ -32,4 +34,4 @@ Benchmark code: this repo at the commit that added this directory. SQLite runs w
 | Tortoise ORM | 1.1.8 |
 | Piccolo | 1.36.0 |
 | ormar | 0.26.0 |
-| ObjectBox | 5.0.0b1 (unreleased; objectbox-python branch `fast-flatbuffers-builder` @ `fc7c0be`, codegen on, no codegen cache) |
+| ObjectBox | 5.0.0b1 (unreleased; objectbox-python branch `fast-flatbuffers-builder` @ `0ac38fa`, codegen on, no codegen cache) |
