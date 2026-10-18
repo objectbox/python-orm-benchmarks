@@ -16,6 +16,7 @@ run test_a
 
 # Test B → Transactioned Intsert
 run test_b
+python ../trim.py  # untimed: delete the rows beyond ITERATIONS again (LARGE_TABLE=1 keeps them)
 
 # Test C → Bulk Insert
 # Not available

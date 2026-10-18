@@ -8,13 +8,14 @@ from models import Journal, SessionLocal
 
 LEVEL_CHOICE = [10, 20, 30, 40, 50]
 concurrents = int(os.environ.get("CONCURRENTS", "10"))
-count = int(os.environ.get("ITERATIONS", "1000"))
+count = int(os.environ.get("BATCH_SIZE", "10000"))
 count = int(count // concurrents) * concurrents
 
 
 async def _runtest(objs):
     async with SessionLocal() as session:
-        session.add_all(objs)
+        # add_all() would insert one by one, like B
+        await session.run_sync(lambda sync_session: sync_session.bulk_save_objects(objs))
         await session.commit()
 
 

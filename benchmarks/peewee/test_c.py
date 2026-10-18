@@ -3,11 +3,11 @@ import os
 import time
 from random import choice
 
-from models import Journal
+from models import Journal, db
 
 LEVEL_CHOICE = [10, 20, 30, 40, 50]
 CHUNK_SIZE = 100
-count = int(os.environ.get("ITERATIONS", "1000"))
+count = int(os.environ.get("BATCH_SIZE", "10000"))
 
 # Work around peewee bulk-insert limitation that is total of 2000 values
 test = int(os.environ.get("TEST", "1"))
@@ -28,8 +28,9 @@ gc.collect()
 gc.freeze()
 
 start = now = time.time()
-for chunk in rows:
-    Journal.insert_many(chunk, [Journal.level, Journal.text]).execute()
+with db.atomic():
+    for chunk in rows:
+        Journal.insert_many(chunk, [Journal.level, Journal.text]).execute()
 now = time.time()
 
 print(f"peewee, C: Rows/sec: {count / (now - start): 10.2f}")

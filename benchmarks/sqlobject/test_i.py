@@ -21,8 +21,8 @@ gc.freeze()
 start = time.time()
 
 for obj, (level, text) in zip(objs, values):
-    obj.level = level
-    obj.text = text
+    # One UPDATE per row; assigning the attributes one by one sends an UPDATE for each
+    obj.set(level=level, text=text)
 trans.commit(close=True)
 
 now = time.time()

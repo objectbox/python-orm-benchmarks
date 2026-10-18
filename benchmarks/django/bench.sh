@@ -17,9 +17,11 @@ run simple.test_a
 
 # Test B → Transactioned Intsert
 run simple.test_b
+python ../trim.py simple_journal$TEST  # untimed: delete the rows beyond ITERATIONS again (LARGE_TABLE=1 keeps them)
 
 # Test C → Bulk Insert
 run simple.test_c
+python ../trim.py simple_journal$TEST  # untimed: delete the rows beyond ITERATIONS again (LARGE_TABLE=1 keeps them)
 
 # Test D → Filter on level
 run simple.test_d

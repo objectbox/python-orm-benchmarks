@@ -4,16 +4,22 @@ import os
 import time
 from random import choice
 
-from models import Journal
+from models import Journal, database
 
 LEVEL_CHOICE = [10, 20, 30, 40, 50]
 concurrents = int(os.environ.get("CONCURRENTS", "10"))
-count = int(os.environ.get("ITERATIONS", "1000"))
+count = int(os.environ.get("BATCH_SIZE", "10000"))
 count = int(count // concurrents) * concurrents
 
 
+# SQLite allows at most 32,766 variables per statement (Test 3: ~36 columns): insert in chunks
+CHUNK_SIZE = 32766 // len(Journal.ormar_config.table.columns)
+
+
 async def _runtest(objs):
-    await Journal.objects.bulk_create(objs)
+    async with database.transaction():
+        for i in range(0, len(objs), CHUNK_SIZE):
+            await Journal.objects.bulk_create(objs[i : i + CHUNK_SIZE])
 
 
 async def runtest(loopstr):

@@ -6,7 +6,7 @@ from random import choice
 from models import Journal, db
 
 LEVEL_CHOICE = [10, 20, 30, 40, 50]
-count = int(os.environ.get("ITERATIONS", "1000"))
+count = int(os.environ.get("BATCH_SIZE", "10000"))
 
 
 # Objects are created before the timer: the benchmark measures persisting them, not creating them

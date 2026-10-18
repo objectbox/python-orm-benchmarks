@@ -1,6 +1,7 @@
 import gc
 import os
 import time
+from random import randrange
 
 from models import Journal
 
@@ -18,7 +19,8 @@ count = 0
 
 for _ in range(iters // 10):
     for level in LEVEL_CHOICE:
-        res = list(Journal.select(Journal.q.level == level).limit(20))
+        offset = randrange(iters - 20)
+        res = list(Journal.select(Journal.q.level == level)[offset : offset + 20])
         count += len(res)
 
 now = time.time()

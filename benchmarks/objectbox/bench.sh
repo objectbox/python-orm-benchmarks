@@ -21,9 +21,11 @@ run test_a
 
 # Test B → Transactioned Intsert
 run test_b
+python -m trim  # untimed: remove the objects beyond ITERATIONS again (LARGE_TABLE=1 keeps them)
 
 # Test C → Bulk Insert
 run test_c
+python -m trim  # untimed: remove the objects beyond ITERATIONS again (LARGE_TABLE=1 keeps them)
 
 # Test D → Filter on level
 run test_d

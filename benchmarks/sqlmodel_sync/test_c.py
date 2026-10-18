@@ -7,7 +7,7 @@ from models import Journal, engine
 from sqlmodel import Session
 
 LEVEL_CHOICE = [10, 20, 30, 40, 50]
-count = int(os.environ.get("ITERATIONS", "1000"))
+count = int(os.environ.get("BATCH_SIZE", "10000"))
 
 # Objects are created before the timer: the benchmark measures persisting them, not creating them
 objs = [Journal(level=choice(LEVEL_CHOICE), text=f"Insert from C, item {i}") for i in range(count)]
@@ -20,7 +20,7 @@ gc.freeze()
 
 start = time.time()
 with Session(engine) as session:
-    session.add_all(objs)
+    session.bulk_save_objects(objs)  # add_all() would insert one by one, like B
     session.commit()
 now = time.time()
 

@@ -32,13 +32,16 @@ from models import create_tables, engine
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from warmup import warm  # noqa: E402  WARMUP=1: untimed run of each operation first
+from trim import trim  # noqa: E402
 
 
 async def run_benchmarks():
     await create_tables()
     await warm(test_a.runtest, loopstr)
     await warm(test_b.runtest, loopstr)
+    trim()  # untimed: delete the rows beyond ITERATIONS again (LARGE_TABLE=1 keeps them)
     await warm(test_c.runtest, loopstr)
+    trim()  # untimed: delete the rows beyond ITERATIONS again (LARGE_TABLE=1 keeps them)
     await warm(test_d.runtest, loopstr)
     await warm(test_e.runtest, loopstr)
     await warm(test_f.runtest, loopstr)

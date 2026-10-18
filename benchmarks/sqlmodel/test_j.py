@@ -14,7 +14,8 @@ concurrents = int(os.environ.get("CONCURRENTS", "10"))
 async def _runtest(objs, levels) -> int:
     async with SessionLocal() as session:
         for obj, level in zip(objs, levels):
-            merged = await session.merge(obj)
+            # load=False: the objects were loaded before, so no SELECT per object
+            merged = await session.merge(obj, load=False)
             merged.level = level
         await session.commit()
     return len(objs)

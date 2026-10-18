@@ -14,7 +14,11 @@ elif dbtype == "mysql":
 else:
     DATABASE_URL = "sqlite+aiosqlite:////tmp/db.sqlite3"
 
-database = ormar.DatabaseConnection(DATABASE_URL)
+if dbtype in ("postgres", "mysql"):
+    database = ormar.DatabaseConnection(DATABASE_URL)
+else:
+    # Busy timeout 60 s instead of 5 s: the concurrent tasks' transactions wait for SQLite's write lock
+    database = ormar.DatabaseConnection(DATABASE_URL, connect_args={"timeout": 60})
 metadata = sqlalchemy.MetaData()
 
 base_ormar_config = ormar.OrmarConfig(

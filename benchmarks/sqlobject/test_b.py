@@ -7,7 +7,7 @@ from models import Journal, conn
 
 LEVEL_CHOICE = [10, 20, 30, 40, 50]
 
-count = int(os.environ.get("ITERATIONS", "1000"))
+count = int(os.environ.get("BATCH_SIZE", "10000"))
 # SQLObject inserts the row when creating the object: only the values are prepared before the timer
 values = [dict(level=choice(LEVEL_CHOICE), text=f"Insert from B, item {i}") for i in range(count)]
 

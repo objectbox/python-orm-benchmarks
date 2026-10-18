@@ -15,7 +15,7 @@ gc.freeze()
 start = time.time()
 
 for obj in objs:
-    obj.delete(obj.id)
+    obj.destroySelf()
 trans.commit(close=True)
 
 now = time.time()
