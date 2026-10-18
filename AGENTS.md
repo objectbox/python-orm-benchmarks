@@ -10,14 +10,13 @@ A benchmark suite comparing Python ORMs (Django, peewee, SQLAlchemy and SQLModel
 
 ```sh
 uv venv --python 3.14 && source .venv/bin/activate
-uv pip install --no-sources --find-links wheels -r pyproject.toml
+uv pip install --no-deps --index-url https://test.pypi.org/simple/ objectbox==5.0.0b1 objectbox-api==5.0.0b1 objectbox-clib==5.3.2
+uv pip install --no-sources -r pyproject.toml
 ```
 
-`objectbox==5.0.0b1` is an unreleased beta that is not on PyPI, so its wheels must be in `wheels/` (gitignored, not committed). They are built from objectbox-python branch `fast-flatbuffers-builder` @ `0ac38fa` (not pushed), which includes the experimental codegen for puts and reads:
-```sh
-mkdir -p wheels && cp ~/dev/objectbox-python/dist/*.whl wheels/
-```
-`make build` in objectbox-python replaces `dist/`. The version string doesn't change between builds, so reinstall with `uv pip install --force-reinstall --no-deps wheels/objectbox-5.0.0b1-py3-none-any.whl`. Wheels built from other branches also carry version 5.0.0b1 but lack the codegen. Expected sha256 for Linux x86_64: `objectbox-5.0.0b1-py3-none-any.whl` `ada4584433c4737bdc1f2cb11ba38df1f9b51ed3d5d13fa7f41043524d5e95db`, `objectbox_clib-5.3.2-py3-none-manylinux_2_28_x86_64.whl` `735ff58e7d71212922378bbc9d076b5ad09d1391b6874fdff448849af65e6ab0` (built with `fc7c0be`; later rebuilds of the clib wheel have a different sha256 but the same C library).
+`objectbox==5.0.0b1` is a beta that is only on TestPyPI, so it's installed first, on its own: with `--no-deps` and TestPyPI as the only index, so no other package comes from TestPyPI; the second command then finds it installed. Since 5.0, `objectbox` is a metapackage: the Python code is in `objectbox-api`, the C library in `objectbox-clib`. Upgrading a venv that has an older `objectbox` (4.x, or a local 5.0.0b1 build that still contains the code) in place breaks `import objectbox`, so `uv pip uninstall objectbox` first. Its experimental codegen for puts and reads is on by default. Expected sha256: `objectbox-5.0.0b1-py3-none-any.whl` `aa787fd532cd342dc99ddb0ab2373358afc3bdc964629f647a38a745d7b9d006`, `objectbox_api-5.0.0b1-py3-none-any.whl` `95a908d42e5f6c7babb3183dc2abdbf9f493e056f894ef9d032cf942f1e9f797`, `objectbox_clib-5.3.2-py3-none-manylinux_2_28_x86_64.whl` `fd585a88bbb473bb976e53c3a40afe8aad88e1c1eff61b1c7945a6dd8a693dc9` (same `libobjectbox.so` as the earlier local builds).
+
+The published SQLite results were measured with local builds of objectbox-python branch `fast-flatbuffers-builder` @ `0ac38fa` (see `raw-results/`). The TestPyPI release renamed `Query.set_parameter_int()` to `set_parameter()` (used by D/E), so the tests no longer run with those builds; a quick check (4 interleaved runs each) found the release within ±2% of `0ac38fa` overall.
 
 Use Python 3.14 to match the published results. Without `--python`, uv picks whatever interpreter it already has, which may be older. SQLite is the version bundled with the Python build (3.53.1 with uv's CPython 3.14.6), not a pip package; `smoke.py` prints the version in use. pydantic is held below 2.14 by ormar's version constraint.
 

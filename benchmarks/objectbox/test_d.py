@@ -15,7 +15,7 @@ query = box.query(Journal.level.equals(LEVEL_CHOICE[0])).build()
 count = 0
 for _ in range(10):
     for level in LEVEL_CHOICE:
-        query.set_parameter_int(Journal.level, level)
+        query.set_parameter(Journal.level, level)
         res = find(query)
         count += len(res)
 

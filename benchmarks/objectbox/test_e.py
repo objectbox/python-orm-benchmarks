@@ -18,7 +18,7 @@ query.limit(20)
 count = 0
 for _ in range(iters // 10):
     for level in LEVEL_CHOICE:
-        query.set_parameter_int(Journal.level, level)
+        query.set_parameter(Journal.level, level)
         query.offset(randrange(iters - 20))
         res = find(query)
         count += len(res)

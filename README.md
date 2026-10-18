@@ -21,7 +21,7 @@ Comprehensive performance benchmarks comparing popular Python ORMs across Postgr
 > **Environment:** Python 3.14, macOS (Apple Silicon), 100 iterations per operation.
 > Piccolo does not support MySQL.
 > Sync SQLAlchemy ("SA ORM") and sync SQLModel are only in the SQLite results so far; the PostgreSQL/MySQL runs predate them, and their "SQLModel" chart labels refer to SQLModel async.
-> ObjectBox is an embedded object database, not an ORM on top of SQL, so it is only compared in the SQLite runs. It uses the unreleased 5.0.0b1 beta with its experimental FlatBuffers codegen for writes and reads enabled (`OBX_CODEGEN=0` disables it). Differences to the SQL ORMs: Test 2 uses plain indexed ids (the Python binding has no relations), Test 3 stores decimals as strings, JSON as JSON strings (like the SQL ORMs store it as text) and leaves "nullable" columns unset (no NULL support), Filter: dict/tuple are not supported (no projection API), and Update: Partial writes the whole object. Its geometric mean covers 9 operations.
+> ObjectBox is an embedded object database, not an ORM on top of SQL, so it is only compared in the SQLite runs. It uses the 5.0.0b1 beta (on TestPyPI) with its experimental FlatBuffers codegen for writes and reads enabled (`OBX_CODEGEN=0` disables it). Differences to the SQL ORMs: Test 2 uses plain indexed ids (the Python binding has no relations), Test 3 stores decimals as strings, JSON as JSON strings (like the SQL ORMs store it as text) and leaves "nullable" columns unset (no NULL support), Filter: dict/tuple are not supported (no projection API), and Update: Partial writes the whole object. Its geometric mean covers 9 operations.
 
 ## Operations
 
@@ -349,7 +349,7 @@ Tortoise ORM wins every test by a wide margin (2x over the runner-up). The `asyn
 
 On SQLite, async overhead hurts more than it helps — there is no concurrency to exploit due to SQLite's single-writer lock. Sync ORMs (peewee, SA ORM, SQLModel, Django, SQLObject) avoid the `aiosqlite` polling overhead and win handily. Among the SQL ORMs, peewee has the best geometric mean in all three tests, followed by sync SA ORM and sync SQLModel (SQLModel is ahead on Test 2, where SA ORM's model maps the relationships, which slows down its Delete). The sync variants of SA ORM and SQLModel are 2–8x faster than their async variants on reads and 13–22x on batch/bulk inserts, updates and deletes (6x for SA ORM's Delete on Test 2; single inserts, one synced commit each, are about the same). Sync SQLModel has the fastest Filter: tuple in all three tests; on the wide model (Test 3), SA ORM leads Filter: Large and Update: Whole among the SQL ORMs, and SQLObject leads Filter: Small and Get. Tortoise ORM remains the fastest async ORM on SQLite.
 
-ObjectBox (embedded object database, experimental codegen for writes and reads) has the best geometric mean in all three tests (30,568 vs peewee's 21,659, 30,001 vs 20,732 and 16,849 vs 10,218, i.e. 1.4–1.7x), though its mean leaves out Filter: dict/tuple, peewee's strongest operations. It wins every operation it runs in all three tests: Get by 4.7–10.3x over the runner-up (SQLObject), Filter: Small by 2.1–3.2x and Filter: Large by 1.3–2.4x. Single inserts (one synced commit each) are 1.3–1.5x ahead of peewee and Tortoise ORM; batch and bulk inserts, updates and deletes 1.3–3.1x ahead of the best SQL ORM. Its results are about as stable between runs as the SQL ORMs': the widest spread is Update: Whole on Test 2, where one of the five runs was ~1.7x faster than the others. These numbers are for objectbox-python branch `fast-flatbuffers-builder` @ `0ac38fa`; the previous build (`fc7c0be`), which read dates and strings a little slower, was 1–15% slower on reads and the same on writes. Earlier builds imported numpy on `import objectbox`, whose idle OpenBLAS threads kept spinning while the first test operations ran and made them up to 2x slower.
+ObjectBox (embedded object database, experimental codegen for writes and reads) has the best geometric mean in all three tests (30,568 vs peewee's 21,659, 30,001 vs 20,732 and 16,849 vs 10,218, i.e. 1.4–1.7x), though its mean leaves out Filter: dict/tuple, peewee's strongest operations. It wins every operation it runs in all three tests: Get by 4.7–10.3x over the runner-up (SQLObject), Filter: Small by 2.1–3.2x and Filter: Large by 1.3–2.4x. Single inserts (one synced commit each) are 1.3–1.5x ahead of peewee and Tortoise ORM; batch and bulk inserts, updates and deletes 1.3–3.1x ahead of the best SQL ORM. Its results are about as stable between runs as the SQL ORMs': the widest spread is Update: Whole on Test 2, where one of the five runs was ~1.7x faster than the others. These numbers are for objectbox-python branch `fast-flatbuffers-builder` @ `0ac38fa`; the previous build (`fc7c0be`), which read dates and strings a little slower, was 1–15% slower on reads and the same on writes. The 5.0.0b1 release on TestPyPI performed the same as `0ac38fa` in a quick check (geometric means within ±2%). Earlier builds imported numpy on `import objectbox`, whose idle OpenBLAS threads kept spinning while the first test operations ran and made them up to 2x slower.
 
 ### SQLite, warm — sync ORMs gain, the order stays
 
@@ -370,8 +370,10 @@ With a warm-up run, the sync ORMs' geometric means rise by 10–36%. The biggest
 # Clone and install
 git clone https://github.com/tortoise/orm-benchmarks.git
 cd orm-benchmarks
-uv venv && source .venv/bin/activate
-uv pip install -e .
+uv venv --python 3.14 && source .venv/bin/activate
+# ObjectBox 5.0.0b1 is only on TestPyPI: install it first, without dependencies
+uv pip install --no-deps --index-url https://test.pypi.org/simple/ objectbox==5.0.0b1 objectbox-api==5.0.0b1 objectbox-clib==5.3.2
+uv pip install --no-sources -r pyproject.toml
 
 # SQLite (default)
 cd benchmarks && sh bench.sh
