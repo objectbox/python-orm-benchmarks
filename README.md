@@ -4,6 +4,42 @@ Performance benchmarks of embedded databases in Python: the object database [Obj
 
 Older results for PostgreSQL and MySQL (SQL ORMs only, earlier benchmark version, different machine) are in [postgres-mysql.md](postgres-mysql.md).
 
+Higher is better: rows (objects) per second, as the geometric mean over the operations of each test that the ORM or database supports (ObjectBox and SQLObject leave out a few, see [Setup](#setup)). Each value is the median of 5 full runs.
+
+## Overall results
+
+### Cold
+
+Sync ORMs and ObjectBox run each operation in a fresh process (async ORMs run all operations in one), so the timed part includes one-time costs such as opening the connection, compiling the first statements and filling caches.
+
+![ObjectBox and SQLite Summary](images/sqlite_summary.png)
+
+### Warm
+
+Each operation first runs once untimed in the same process, the database is restored to its state before that run, and then the operation is timed (see [Detailed results: warm](#detailed-results-warm)).
+
+![ObjectBox and SQLite Summary, warm](images/sqlite_warm_summary.png)
+
+Geometric means, cold vs. warm:
+
+| Database / ORM | Test 1 cold | Test 1 warm | Test 2 cold | Test 2 warm | Test 3 cold | Test 3 warm |
+|-----|------------:|------------:|------------:|------------:|------------:|------------:|
+| ObjectBox | 30,568 | **36,380** (×1.19) | 30,001 | **35,298** (×1.18) | 16,849 | **20,883** (×1.24) |
+| Django | 11,118 | 12,987 (×1.17) | 9,751 | 11,200 (×1.15) | 6,354 | 7,223 (×1.14) |
+| peewee | 21,659 | 26,324 (×1.22) | 20,732 | 24,559 (×1.18) | 10,218 | 11,284 (×1.10) |
+| SA ORM | 13,338 | 16,392 (×1.23) | 9,831 | 13,349 (×1.36) | 8,822 | 11,285 (×1.28) |
+| SA ORM async | 1,946 | 1,974 (×1.01) | 1,837 | 1,862 (×1.01) | 1,268 | 1,291 (×1.02) |
+| SQLObject | 3,829 | 4,242 (×1.11) | 3,752 | 4,191 (×1.12) | 2,872 | 3,236 (×1.13) |
+| Tortoise ORM | 7,821 | 8,085 (×1.03) | 8,059 | 7,586 (×0.94) | 5,590 | 5,605 (×1.00) |
+| Piccolo | 2,059 | 2,027 (×0.98) | 1,992 | 2,001 (×1.00) | 1,231 | 1,219 (×0.99) |
+| ormar | 1,692 | 1,717 (×1.01) | 1,632 | 1,655 (×1.01) | 1,059 | 1,075 (×1.02) |
+| SQLModel | 13,042 | 16,463 (×1.26) | 12,861 | 16,521 (×1.28) | 8,640 | 10,729 (×1.24) |
+| SQLModel async | 1,886 | 1,950 (×1.03) | 1,836 | 1,951 (×1.06) | 1,211 | 1,229 (×1.01) |
+
+---
+
+## Setup
+
 **Tested:**
 
 | Database / ORM | Type | Driver |
@@ -24,7 +60,7 @@ Older results for PostgreSQL and MySQL (SQL ORMs only, earlier benchmark version
 >
 > ObjectBox is an embedded object database with its own storage engine, not an ORM on top of SQL. It uses the 5.0.0b1 beta (on TestPyPI) with its experimental FlatBuffers codegen for writes and reads enabled (`OBX_CODEGEN=0` disables it). Differences to the SQL ORMs: Test 2 uses plain indexed ids (the Python binding has no relations), Test 3 stores decimals as strings, JSON as JSON strings (like the SQL ORMs store it as text) and leaves "nullable" columns unset (no NULL support), Filter: dict/tuple are not supported (no projection API), and Update: Partial writes the whole object. Its geometric mean covers 9 operations.
 
-## Operations
+### Operations
 
 | Code | Operation | Description |
 |------|-----------|-------------|
@@ -42,7 +78,7 @@ Older results for PostgreSQL and MySQL (SQL ORMs only, earlier benchmark version
 
 Only persisting is timed: the insert operations create the unsaved objects before the timer starts, and the update operations choose the new values before it, so creating objects (including field defaults) and generating test data don't count. SQLObject inserts the row when it creates the object, so for SQLObject only the field values are prepared; peewee's bulk insert prepares row tuples and applies defaults while inserting. Right before the timer starts, each test runs `gc.collect()` and `gc.freeze()`, so garbage from the preparation isn't collected while timed.
 
-## Test Models
+### Test Models
 
 **Test 1 — Simple model** (4 fields): `id`, `timestamp`, `level` (indexed), `text` (indexed)
 
@@ -52,13 +88,9 @@ Only persisting is timed: the insert operations create the unsaved objects befor
 
 ---
 
-## Results: cold
+## Detailed results: cold
 
-SQLite on the local filesystem (`/tmp/db.sqlite3`), ObjectBox in `/tmp/objectbox-bench`. SQLite allows one writer at a time, so the benchmark is single-threaded; async ORMs pay overhead without a concurrency benefit. These are cold numbers; see [Results: warm](#results-warm) for runs with a warm-up run before each operation.
-
-### Overview
-
-![ObjectBox and SQLite Summary](images/sqlite_summary.png)
+SQLite on the local filesystem (`/tmp/db.sqlite3`), ObjectBox in `/tmp/objectbox-bench`. SQLite allows one writer at a time, so the benchmark is single-threaded; async ORMs pay overhead without a concurrency benefit. These are cold numbers; see [Detailed results: warm](#detailed-results-warm) for runs with a warm-up run before each operation.
 
 ### Test 1: Simple Model (4 fields)
 
@@ -117,29 +149,9 @@ SQLite on the local filesystem (`/tmp/db.sqlite3`), ObjectBox in `/tmp/objectbox
 | Delete | 5,778 | 22,786 | 9,769 | 447 | 53 | 4,106 | 541 | 537 | 9,665 | 447 | **69,766** | ObjectBox |
 | **Geometric Mean** | 6,354 | 10,218 | 8,822 | 1,268 | 2,872 | 5,590 | 1,231 | 1,059 | 8,640 | 1,211 | **16,849** | **ObjectBox** |
 
-## Results: warm
+## Detailed results: warm
 
-The tables above are "cold": each sync ORM runs every operation in a fresh process, so the timed loop also pays one-time costs such as opening a lazily opened connection, compiling the first statements, filling the ORM's caches and, for ObjectBox, compiling its codegen (imports are never timed). These runs use the warm-up mode (`WARMUP=1`): each operation first runs once untimed in the same process (async ORMs: the same event loop), the database is restored to its state before that run (rows and ID sequences), and then the operation runs again and is timed. Same machine, versions and settings as the cold results; each value is the median of 5 full runs.
-
-Geometric means, cold vs. warm:
-
-| ORM | Test 1 cold | Test 1 warm | Test 2 cold | Test 2 warm | Test 3 cold | Test 3 warm |
-|-----|------------:|------------:|------------:|------------:|------------:|------------:|
-| Django | 11,118 | 12,987 (×1.17) | 9,751 | 11,200 (×1.15) | 6,354 | 7,223 (×1.14) |
-| peewee | 21,659 | 26,324 (×1.22) | 20,732 | 24,559 (×1.18) | 10,218 | 11,284 (×1.10) |
-| SA ORM | 13,338 | 16,392 (×1.23) | 9,831 | 13,349 (×1.36) | 8,822 | 11,285 (×1.28) |
-| SA ORM async | 1,946 | 1,974 (×1.01) | 1,837 | 1,862 (×1.01) | 1,268 | 1,291 (×1.02) |
-| SQLObject | 3,829 | 4,242 (×1.11) | 3,752 | 4,191 (×1.12) | 2,872 | 3,236 (×1.13) |
-| Tortoise ORM | 7,821 | 8,085 (×1.03) | 8,059 | 7,586 (×0.94) | 5,590 | 5,605 (×1.00) |
-| Piccolo | 2,059 | 2,027 (×0.98) | 1,992 | 2,001 (×1.00) | 1,231 | 1,219 (×0.99) |
-| ormar | 1,692 | 1,717 (×1.01) | 1,632 | 1,655 (×1.01) | 1,059 | 1,075 (×1.02) |
-| SQLModel | 13,042 | 16,463 (×1.26) | 12,861 | 16,521 (×1.28) | 8,640 | 10,729 (×1.24) |
-| SQLModel async | 1,886 | 1,950 (×1.03) | 1,836 | 1,951 (×1.06) | 1,211 | 1,229 (×1.01) |
-| ObjectBox | 30,568 | **36,380** (×1.19) | 30,001 | **35,298** (×1.18) | 16,849 | **20,883** (×1.24) |
-
-### Overview
-
-![ObjectBox and SQLite Summary, warm](images/sqlite_warm_summary.png)
+In the cold results, each sync ORM runs every operation in a fresh process, so the timed loop also pays one-time costs such as opening a lazily opened connection, compiling the first statements, filling the ORM's caches and, for ObjectBox, compiling its codegen (imports are never timed). These runs use the warm-up mode (`WARMUP=1`): each operation first runs once untimed in the same process (async ORMs: the same event loop), the database is restored to its state before that run (rows and ID sequences), and then the operation runs again and is timed. Same machine, versions and settings as the cold results; each value is the median of 5 full runs.
 
 ### Test 1: Simple Model (4 fields)
 
