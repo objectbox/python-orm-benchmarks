@@ -4,7 +4,9 @@ This file provides guidance to AI coding agents working with code in this reposi
 
 ## What this is
 
-A benchmark suite comparing Python ORMs (Django, peewee, SQLAlchemy and SQLModel sync and async, SQLObject, Tortoise ORM, Piccolo, ormar) on SQLite, PostgreSQL and MySQL, plus the embedded object database ObjectBox (SQLite runs only). There is no test suite; the "tests" are benchmark operations. `README.md` holds the published results tables and charts.
+A benchmark suite comparing Python ORMs (Django, peewee, SQLAlchemy and SQLModel sync and async, SQLObject, Tortoise ORM, Piccolo, ormar) on SQLite, PostgreSQL and MySQL, plus the embedded object database ObjectBox (SQLite runs only).
+There is no test suite; the "tests" are benchmark operations.
+The focus is on embedded databases: `README.md` holds the published SQLite/ObjectBox results tables and charts; the older PostgreSQL/MySQL results are in `postgres-mysql.md`.
 
 ## Commands
 

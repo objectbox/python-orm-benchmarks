@@ -180,7 +180,7 @@ def main():
             "files": ["/tmp/mysql_outfile1", "/tmp/mysql_outfile2", "/tmp/mysql_outfile3"],
         },
         "sqlite": {
-            "label": "SQLite",
+            "label": "ObjectBox and SQLite",
             "files": ["/tmp/sqlite_outfile1", "/tmp/sqlite_outfile2", "/tmp/sqlite_outfile3"],
         },
     }
