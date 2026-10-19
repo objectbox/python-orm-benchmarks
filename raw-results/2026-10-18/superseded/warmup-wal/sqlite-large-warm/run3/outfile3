@@ -1,0 +1,22 @@
+peewee, A: Rows/sec:     160.98
+peewee, B: Rows/sec:    9821.17
+peewee, C: Rows/sec:   25616.35
+peewee, D: Rows/sec:   53431.05
+peewee, E: Rows/sec:   34392.79
+peewee, F: Rows/sec:    4224.19
+peewee, G: Rows/sec:   88650.24
+peewee, H: Rows/sec:   93332.69
+peewee, I: Rows/sec:    5462.99
+peewee, J: Rows/sec:   27032.89
+peewee, K: Rows/sec:   41653.87
+Tortoise ORM, A: Rows/sec:     159.77
+Tortoise ORM, B: Rows/sec:   15108.05
+Tortoise ORM, C: Rows/sec:   38435.60
+Tortoise ORM, D: Rows/sec:   30030.06
+Tortoise ORM, E: Rows/sec:   27693.40
+Tortoise ORM, F: Rows/sec:    6366.20
+Tortoise ORM, G: Rows/sec:   44403.34
+Tortoise ORM, H: Rows/sec:   40219.54
+Tortoise ORM, I: Rows/sec:   16966.03
+Tortoise ORM, J: Rows/sec:   31157.16
+Tortoise ORM, K: Rows/sec:   36096.01

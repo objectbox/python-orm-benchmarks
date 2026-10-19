@@ -1,0 +1,143 @@
+System check identified some issues:
+
+WARNINGS:
+simple.Journal3.col_json1: (fields.E010) JSONField default should be a callable instead of an instance so that it's not shared between all field instances.
+	HINT: Use a callable instead, e.g., use `dict` instead of `{}`.
+simple.Journal3.col_json3: (fields.E010) JSONField default should be a callable instead of an instance so that it's not shared between all field instances.
+	HINT: Use a callable instead, e.g., use `dict` instead of `{}`.
+Django, A: Rows/sec:      53.62
+Django, B: Rows/sec:    5626.43
+Django, C: Rows/sec:   18434.42
+Django, D: Rows/sec:   53703.82
+Django, E: Rows/sec:   27821.98
+Django, F: Rows/sec:    3975.27
+Django, G: Rows/sec:   64826.29
+Django, H: Rows/sec:   69960.26
+Django, I: Rows/sec:    4349.21
+Django, J: Rows/sec:    6468.03
+Django, K: Rows/sec:    7292.62
+SA ORM, A: Rows/sec:      53.12
+SA ORM, B: Rows/sec:   23557.46
+SA ORM, C: Rows/sec:   54955.73
+SA ORM, D: Rows/sec:   86009.95
+SA ORM, E: Rows/sec:   40410.26
+/home/markus/dev/python-orm-benchmarks/benchmarks/sqlalchemy/test_f.py:27: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+  session.query(Journal).get(randint(1, maxval))
+/home/markus/dev/python-orm-benchmarks/benchmarks/sqlalchemy/test_f.py:27: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+  session.query(Journal).get(randint(1, maxval))
+SA ORM, F: Rows/sec:    8230.58
+SA ORM, G: Rows/sec:   72511.45
+SA ORM, H: Rows/sec:  102546.88
+SA ORM, I: Rows/sec:   11385.29
+SA ORM, J: Rows/sec:   12431.01
+SA ORM, K: Rows/sec:   14207.54
+/home/markus/dev/python-orm-benchmarks/benchmarks/sqlalchemy_async/bench.py:16: DeprecationWarning: 'asyncio.set_event_loop_policy' is deprecated and slated for removal in Python 3.16
+  asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+SA ORM async, A: Rows/sec:      48.69
+SA ORM async, B: Rows/sec:    7990.84
+SA ORM async, C: Rows/sec:   16166.83
+SA ORM async, D: Rows/sec:   17385.48
+SA ORM async, E: Rows/sec:   11367.29
+SA ORM async, F: Rows/sec:    3051.61
+SA ORM async, G: Rows/sec:   16780.68
+SA ORM async, H: Rows/sec:   14281.20
+SA ORM async, I: Rows/sec:     647.89
+SA ORM async, J: Rows/sec:     648.27
+SA ORM async, K: Rows/sec:     641.92
+SQLObject, A: Rows/sec:      53.55
+SQLObject, B: Rows/sec:    6681.26
+SQLObject, D: Rows/sec:   44112.03
+SQLObject, E: Rows/sec:   33211.70
+SQLObject, F: Rows/sec:   10876.78
+SQLObject, I: Rows/sec:    8840.07
+SQLObject, J: Rows/sec:    9629.68
+SQLObject, K: Rows/sec:    9666.97
+/home/markus/dev/python-orm-benchmarks/benchmarks/tortoise/bench.py:17: DeprecationWarning: 'asyncio.set_event_loop_policy' is deprecated and slated for removal in Python 3.16
+  asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+/home/markus/dev/python-orm-benchmarks/benchmarks/piccolo/bench.py:16: DeprecationWarning: 'asyncio.set_event_loop_policy' is deprecated and slated for removal in Python 3.16
+  asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+Connection pooling is not supported for sqlite.
+/home/markus/dev/python-orm-benchmarks/.venv/lib/python3.14/site-packages/piccolo/engine/base.py:189: Warning: [33mConnection pooling is not supported for sqlite.[39m
+  self._connection_pool_warning()
+Piccolo, A: Rows/sec:      48.54
+Piccolo, B: Rows/sec:    3607.89
+Piccolo, C: Rows/sec:   10161.06
+Piccolo, D: Rows/sec:   11082.49
+Piccolo, E: Rows/sec:    8926.29
+Piccolo, F: Rows/sec:    1737.47
+Piccolo, G: Rows/sec:   15120.35
+Piccolo, H: Rows/sec:   14240.47
+Piccolo, I: Rows/sec:     535.80
+Piccolo, J: Rows/sec:     536.73
+Piccolo, K: Rows/sec:     538.97
+Connection pooling is not supported for sqlite.
+/home/markus/dev/python-orm-benchmarks/.venv/lib/python3.14/site-packages/piccolo/engine/base.py:195: Warning: [33mConnection pooling is not supported for sqlite.[39m
+  self._connection_pool_warning()
+/home/markus/dev/python-orm-benchmarks/benchmarks/ormar/bench.py:16: DeprecationWarning: 'asyncio.set_event_loop_policy' is deprecated and slated for removal in Python 3.16
+  asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+ormar, A: Rows/sec:      44.24
+ormar, B: Rows/sec:    1032.57
+ormar, C: Rows/sec:    2979.34
+ormar, D: Rows/sec:    9923.02
+ormar, E: Rows/sec:    6010.45
+ormar, F: Rows/sec:    1116.13
+ormar, G: Rows/sec:   12501.17
+ormar, H: Rows/sec:   10883.52
+ormar, I: Rows/sec:     444.27
+ormar, J: Rows/sec:     531.95
+ormar, K: Rows/sec:     536.61
+SQLModel, A: Rows/sec:      53.54
+SQLModel, B: Rows/sec:   20621.26
+SQLModel, C: Rows/sec:   44932.78
+SQLModel, D: Rows/sec:   74971.92
+SQLModel, E: Rows/sec:   39788.62
+SQLModel, F: Rows/sec:    8804.26
+SQLModel, G: Rows/sec:   54756.64
+SQLModel, H: Rows/sec:  104108.02
+SQLModel, I: Rows/sec:   11154.57
+SQLModel, J: Rows/sec:   12352.42
+SQLModel, K: Rows/sec:   14048.76
+/home/markus/dev/python-orm-benchmarks/benchmarks/sqlmodel/bench.py:16: DeprecationWarning: 'asyncio.set_event_loop_policy' is deprecated and slated for removal in Python 3.16
+  asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+SQLModel async, A: Rows/sec:      47.00
+SQLModel async, B: Rows/sec:    7771.75
+SQLModel async, C: Rows/sec:   18864.47
+SQLModel async, D: Rows/sec:   11772.25
+SQLModel async, E: Rows/sec:   10054.95
+SQLModel async, F: Rows/sec:    2911.60
+SQLModel async, G: Rows/sec:   14377.28
+SQLModel async, H: Rows/sec:   17629.87
+SQLModel async, I: Rows/sec:     646.20
+SQLModel async, J: Rows/sec:     645.02
+SQLModel async, K: Rows/sec:     641.47
+ObjectBox, A: Rows/sec:     208.62
+ObjectBox, B: Rows/sec:   57059.23
+ObjectBox, C: Rows/sec:   65604.17
+ObjectBox, D: Rows/sec:  102576.14
+ObjectBox, E: Rows/sec:   89215.03
+ObjectBox, F: Rows/sec:   80396.86
+ObjectBox, I: Rows/sec:   35982.02
+ObjectBox, J: Rows/sec:   39055.53
+ObjectBox, K: Rows/sec:   71017.68
+peewee, A: Rows/sec:     157.34
+peewee, B: Rows/sec:    9858.45
+peewee, C: Rows/sec:   26589.38
+peewee, D: Rows/sec:   50579.28
+peewee, E: Rows/sec:   28414.87
+peewee, F: Rows/sec:    4224.74
+peewee, G: Rows/sec:   77930.62
+peewee, H: Rows/sec:   82092.63
+peewee, I: Rows/sec:    5110.23
+peewee, J: Rows/sec:   18525.53
+peewee, K: Rows/sec:   23818.64
+Tortoise ORM, A: Rows/sec:     160.87
+Tortoise ORM, B: Rows/sec:   18524.09
+Tortoise ORM, C: Rows/sec:   40122.71
+Tortoise ORM, D: Rows/sec:   34729.11
+Tortoise ORM, E: Rows/sec:   25035.05
+Tortoise ORM, F: Rows/sec:    6313.20
+Tortoise ORM, G: Rows/sec:   43495.39
+Tortoise ORM, H: Rows/sec:   39607.02
+Tortoise ORM, I: Rows/sec:    3700.27
+Tortoise ORM, J: Rows/sec:    4137.04
+Tortoise ORM, K: Rows/sec:    4235.15
