@@ -30,7 +30,10 @@ elif dbtype == "mysql":
         f"mysql+aiomysql://root:{os.environ.get('PASSWORD')}@localhost:{os.environ.get('MYPORT', '3306')}/tbench"
     )
 else:
-    engine = create_async_engine("sqlite+aiosqlite:////tmp/db.sqlite3")
+    # Busy timeout 60 s instead of 5 s: the concurrent tasks' transactions wait for SQLite's write lock
+    engine = create_async_engine(
+        "sqlite+aiosqlite:////tmp/db.sqlite3", connect_args={"timeout": 60}
+    )
 
 SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 

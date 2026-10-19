@@ -1,3 +1,4 @@
+import gc
 import os
 import time
 
@@ -9,6 +10,12 @@ count = int(os.environ.get("ITERATIONS", "1000"))
 
 
 Session = sessionmaker(bind=engine)
+
+# Settle the GC: collect leftovers, keep existing objects out of collections while timed
+
+gc.collect()
+
+gc.freeze()
 
 start = time.time()
 session = Session()
@@ -24,4 +31,4 @@ for _ in range(10):
 
 now = time.time()
 
-print(f"SQLAlchemy ORM, G: Rows/sec: {count / (now - start): 10.2f}")
+print(f"SA ORM, G: Rows/sec: {count / (now - start): 10.2f}")

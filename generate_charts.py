@@ -30,15 +30,19 @@ ORM_COLORS = {
     "Tortoise ORM": "#2ecc71",
     "Django": "#3498db",
     "peewee": "#e67e22",
+    "SA ORM": "#5e3370",
     "SA ORM async": "#9b59b6",
     "SQLObject": "#95a5a6",
     "Piccolo": "#e74c3c",
-    "ormar": "#1abc9c",
-    "SQLModel": "#f39c12",
+    "ormar": "#d63384",
+    "SQLModel": "#b9770e",
+    "SQLModel async": "#f39c12",
+    "ObjectBox": "#17A6A6",
 }
 
-ORM_ORDER = ["Tortoise ORM", "Django", "peewee", "SA ORM async", "SQLObject", "Piccolo", "ormar", "SQLModel"]
-OP_ORDER = list("ABCDEFGHIJK")
+ORM_ORDER = ["ObjectBox", "Tortoise ORM", "Django", "peewee", "SA ORM", "SA ORM async", "SQLObject", "Piccolo", "ormar", "SQLModel", "SQLModel async"]
+# Filter: dict/tuple (G/H) are measured but not presented: they return plain rows, not objects
+OP_ORDER = list("ABCDEFIJK")
 
 
 def parse_results(filepath):
@@ -49,7 +53,8 @@ def parse_results(filepath):
             m = re.match(r"^\s*(?:\d+[→\t])?\s*(.+?),\s*([A-K]):\s*Rows/sec:\s*([\d.]+)", line)
             if m:
                 orm, op, val = m.group(1).strip(), m.group(2), float(m.group(3))
-                data[orm][op] = val
+                if op in OP_ORDER:
+                    data[orm][op] = val
     return dict(data)
 
 
@@ -61,8 +66,12 @@ def compute_geometric_mean(values):
     return math.exp(sum(math.log(v) for v in vals) / len(vals))
 
 
-def generate_chart(data, title, output_path, show_geomean=True):
-    """Generate a grouped bar chart for benchmark results."""
+def generate_chart(data, title, output_path, show_geomean=True, log_scale=True):
+    """Generate a grouped bar chart for benchmark results.
+
+    Log scale by default: the operations span ~50 to ~1,000,000 rows/sec, so a linear axis hides the
+    slow ones (single inserts, updates, deletes) next to the fast reads.
+    """
     orms = [o for o in ORM_ORDER if o in data]
     ops = [o for o in OP_ORDER if any(o in data.get(orm, {}) for orm in orms)]
 
@@ -92,12 +101,21 @@ def generate_chart(data, title, output_path, show_geomean=True):
 
     ax.set_xticks(x)
     ax.set_xticklabels(labels, fontsize=9)
-    ax.set_ylabel("Rows/sec", fontsize=11, fontweight="bold")
     ax.set_title(title, fontsize=14, fontweight="bold", pad=15)
+    if log_scale:
+        ax.set_yscale("log")
+        ax.set_ylim(bottom=10)
+        ax.set_ylabel("Rows/sec (log scale)", fontsize=11, fontweight="bold")
+        ax.yaxis.set_minor_formatter(ticker.NullFormatter())
+        ax.grid(axis="y", which="minor", alpha=0.1, zorder=0)
+    else:
+        ax.set_ylabel("Rows/sec", fontsize=11, fontweight="bold")
     ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, _: f"{v:,.0f}"))
     ax.grid(axis="y", alpha=0.3, zorder=0)
     ax.set_axisbelow(True)
-    ax.legend(loc="upper left", fontsize=9, ncol=min(n_orms, 4), framealpha=0.9)
+    # below the plot, so it can't cover the first bars
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.1), fontsize=9,
+              ncol=min(n_orms, 6), framealpha=0.9)
     ax.set_xlim(-0.6, n_ops - 0.4)
 
     if show_geomean:
@@ -149,7 +167,10 @@ def generate_geomean_summary(all_data, title, output_path):
     ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, _: f"{v:,.0f}"))
     ax.grid(axis="y", alpha=0.3, zorder=0)
     ax.set_axisbelow(True)
-    ax.legend(loc="upper right", fontsize=9, ncol=min(n_orms, 4), framealpha=0.9)
+    ax.set_ylim(top=ax.get_ylim()[1] * 1.08)  # room for the rotated value labels
+    # below the plot, so it can't cover the value labels of the tallest bars
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.08), fontsize=9,
+              ncol=min(n_orms, 5), framealpha=0.9)
 
     plt.tight_layout()
     plt.savefig(output_path, dpi=150, bbox_inches="tight", facecolor="white")
@@ -172,7 +193,7 @@ def main():
             "files": ["/tmp/mysql_outfile1", "/tmp/mysql_outfile2", "/tmp/mysql_outfile3"],
         },
         "sqlite": {
-            "label": "SQLite",
+            "label": "ObjectBox and SQLite",
             "files": ["/tmp/sqlite_outfile1", "/tmp/sqlite_outfile2", "/tmp/sqlite_outfile3"],
         },
     }

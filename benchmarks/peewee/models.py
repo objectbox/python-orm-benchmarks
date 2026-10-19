@@ -14,10 +14,10 @@ from peewee import (
     Model,
     MySQLDatabase,
     SmallIntegerField,
+    SqliteDatabase,
     TextField,
 )
 from playhouse.postgres_ext import PostgresqlExtDatabase
-from playhouse.sqlite_ext import SqliteExtDatabase
 
 dbtype = os.environ.get("DBTYPE", "")
 if dbtype == "postgres":
@@ -25,7 +25,7 @@ if dbtype == "postgres":
 elif dbtype == "mysql":
     db = MySQLDatabase("tbench", user="root", password=os.environ.get("PASSWORD"), host="127.0.0.1", port=int(os.environ.get("MYPORT", "3306")))
 else:
-    db = SqliteExtDatabase(
+    db = SqliteDatabase(
         "/tmp/db.sqlite3",
         pragmas=(("journal_mode", "wal"),),  # Use WAL-mode (you should always use this!).
     )

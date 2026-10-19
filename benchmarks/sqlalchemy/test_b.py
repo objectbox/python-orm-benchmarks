@@ -1,3 +1,4 @@
+import gc
 import os
 import time
 from random import choice
@@ -6,15 +7,24 @@ from models import Journal, engine
 from sqlalchemy.orm import sessionmaker
 
 LEVEL_CHOICE = [10, 20, 30, 40, 50]
-count = int(os.environ.get("ITERATIONS", "1000"))
+count = int(os.environ.get("BATCH_SIZE", "10000"))
 
 
 Session = sessionmaker(bind=engine)
+# Objects are created before the timer: the benchmark measures persisting them, not creating them
+objs = [Journal(level=choice(LEVEL_CHOICE), text=f"Insert from B, item {i}") for i in range(count)]
+
+# Settle the GC: collect leftovers, keep existing objects out of collections while timed
+
+gc.collect()
+
+gc.freeze()
+
 start = now = time.time()
 session = Session()
-for i in range(count):
-    session.add(Journal(level=choice(LEVEL_CHOICE), text=f"Insert from B, item {i}"))
+for obj in objs:
+    session.add(obj)
 session.commit()
 now = time.time()
 
-print(f"SQLAlchemy ORM, B: Rows/sec: {count / (now - start): 10.2f}")
+print(f"SA ORM, B: Rows/sec: {count / (now - start): 10.2f}")

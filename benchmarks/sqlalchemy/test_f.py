@@ -1,3 +1,4 @@
+import gc
 import os
 import time
 from random import randint
@@ -13,6 +14,12 @@ count *= 2
 
 Session = sessionmaker(bind=engine)
 
+# Settle the GC: collect leftovers, keep existing objects out of collections while timed
+
+gc.collect()
+
+gc.freeze()
+
 start = time.time()
 session = Session()
 
@@ -21,4 +28,4 @@ for _ in range(count):
 
 now = time.time()
 
-print(f"SQLAlchemy ORM, F: Rows/sec: {count / (now - start): 10.2f}")
+print(f"SA ORM, F: Rows/sec: {count / (now - start): 10.2f}")

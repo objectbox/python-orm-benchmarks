@@ -1,9 +1,10 @@
 import asyncio
+import gc
 import os
 import time
 
-from sqlmodel import select
 from models import Journal, SessionLocal
+from sqlmodel import select
 
 concurrents = int(os.environ.get("CONCURRENTS", "10"))
 
@@ -11,7 +12,8 @@ concurrents = int(os.environ.get("CONCURRENTS", "10"))
 async def _runtest(objs) -> int:
     async with SessionLocal() as session:
         for obj in objs:
-            merged = await session.merge(obj)
+            # load=False: the objects were loaded before, so no SELECT per object
+            merged = await session.merge(obj, load=False)
             await session.delete(merged)
         await session.commit()
     return len(objs)
@@ -27,6 +29,12 @@ async def runtest(loopstr):
     if inrange < 1:
         inrange = 1
 
+    # Settle the GC: collect leftovers, keep existing objects out of collections while timed
+
+    gc.collect()
+
+    gc.freeze()
+
     start = time.time()
     count = sum(
         await asyncio.gather(
@@ -34,4 +42,4 @@ async def runtest(loopstr):
         )
     )
     now = time.time()
-    print(f"SQLModel{loopstr}, K: Rows/sec: {count / (now - start): 10.2f}")
+    print(f"SQLModel async{loopstr}, K: Rows/sec: {count / (now - start): 10.2f}")

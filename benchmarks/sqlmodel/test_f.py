@@ -1,4 +1,5 @@
 import asyncio
+import gc
 import os
 import time
 from random import randint
@@ -18,7 +19,10 @@ async def _runtest(count):
 
 
 async def runtest(loopstr):
+    # Settle the GC: collect leftovers, keep existing objects out of collections while timed
+    gc.collect()
+    gc.freeze()
     start = time.time()
     await asyncio.gather(*[_runtest(count // concurrents) for _ in range(concurrents)])
     now = time.time()
-    print(f"SQLModel{loopstr}, F: Rows/sec: {count / (now - start): 10.2f}")
+    print(f"SQLModel async{loopstr}, F: Rows/sec: {count / (now - start): 10.2f}")

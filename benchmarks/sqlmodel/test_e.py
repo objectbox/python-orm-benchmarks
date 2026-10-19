@@ -1,10 +1,11 @@
 import asyncio
+import gc
 import os
 import time
 from random import randrange
 
-from sqlmodel import select
 from models import Journal, SessionLocal
+from sqlmodel import select
 
 LEVEL_CHOICE = [10, 20, 30, 40, 50]
 iters = int(os.environ.get("ITERATIONS", "1000"))
@@ -25,9 +26,12 @@ async def _runtest(_iters) -> int:
 
 
 async def runtest(loopstr):
+    # Settle the GC: collect leftovers, keep existing objects out of collections while timed
+    gc.collect()
+    gc.freeze()
     start = time.time()
     count = sum(
         await asyncio.gather(*[_runtest(iters // 10 // concurrents) for _ in range(concurrents)])
     )
     now = time.time()
-    print(f"SQLModel{loopstr}, E: Rows/sec: {count / (now - start): 10.2f}")
+    print(f"SQLModel async{loopstr}, E: Rows/sec: {count / (now - start): 10.2f}")

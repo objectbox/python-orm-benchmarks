@@ -1,40 +1,124 @@
-# ORM Benchmarks
+# Python Embedded Database Benchmarks: ObjectBox and SQLite
 
-Comprehensive performance benchmarks comparing popular Python ORMs across PostgreSQL, MySQL, and SQLite.
+Performance benchmarks of embedded databases in Python: the object database [ObjectBox](https://github.com/objectbox/objectbox-python) and SQLite, accessed through popular Python ORMs. Everything runs in-process on local storage, without a database server.
 
-**Tested ORMs:**
+This is a fork of [tortoise/orm-benchmarks](https://github.com/tortoise/orm-benchmarks), the ORM benchmark of the Tortoise ORM project. Changes: ObjectBox added; sync variants of SQLAlchemy and SQLModel added; only persisting is timed (objects and new values are prepared before the timer); a warm-up mode; batch and bulk inserts with 10,000 objects; a large-table mode; fixes to how the suite uses several ORMs (see [raw-results/2026-10-18](raw-results/2026-10-18/README.md)); results are the median of 5 runs.
 
-| ORM | Type | PostgreSQL | MySQL | SQLite |
-|-----|------|:---:|:---:|:---:|
-| [Tortoise ORM](https://github.com/tortoise/tortoise-orm) | async | asyncpg | asyncmy | aiosqlite |
-| [Django](https://www.djangoproject.com/) | sync | psycopg2 | mysqlclient | sqlite3 |
-| [peewee](https://github.com/coleifer/peewee) | sync | psycopg2 | pymysql | sqlite3 |
-| [SQLAlchemy ORM (async)](http://www.sqlalchemy.org/) | async | asyncpg | aiomysql | aiosqlite |
-| [SQLObject](https://github.com/sqlobject/sqlobject) | sync | psycopg2 | mysqlclient | sqlite3 |
-| [Piccolo](https://github.com/piccolo-orm/piccolo) | async | asyncpg | — | aiosqlite |
-| [ormar](https://github.com/collerek/ormar) | async | asyncpg | aiomysql | aiosqlite |
-| [SQLModel](https://github.com/tiangolo/sqlmodel) | async | asyncpg | aiomysql | aiosqlite |
+Older results for PostgreSQL and MySQL (SQL ORMs only, earlier benchmark version, different machine) are in [postgres-mysql.md](postgres-mysql.md).
 
-> **Environment:** Python 3.14, macOS (Apple Silicon), 100 iterations per operation.
-> Piccolo does not support MySQL.
+Higher is better: rows (objects) per second, as the geometric mean over the 9 object operations of each test (SQLObject has no bulk insert, so its mean covers 8; see [Setup](#setup)). Each value is the median of 5 full runs.
 
-## Operations
+**Contents**
+
+- [Overall results](#overall-results): [cold](#cold), [warm](#warm), [large table (~20,000 rows)](#large-table-20000-rows)
+- [Setup](#setup): [operations](#operations), [test models](#test-models)
+- [Detailed results: cold](#detailed-results-cold): [Test 1](#test-1-simple-model-4-fields), [Test 2](#test-2-fk-relations), [Test 3](#test-3-wide-model-32-fields)
+- [Detailed results: warm](#detailed-results-warm): [Test 1](#test-1-simple-model-4-fields-1), [Test 2](#test-2-fk-relations-1), [Test 3](#test-3-wide-model-32-fields-1)
+- [Detailed results: large table](large-table.md) (separate page)
+- [Analysis](#analysis): [cold](#cold-objectbox-about-3x-the-best-sql-orm), [warm](#warm-sync-orms-and-objectbox-gain-the-order-stays), [large table](#large-table-the-commit-is-amortized-objectbox-stays-ahead), [key takeaways](#key-takeaways)
+- [Running the benchmarks](#running-the-benchmarks)
+
+## Overall results
+
+### Cold
+
+Sync ORMs and ObjectBox run each operation in a fresh process (async ORMs run all operations in one), so the timed part includes one-time costs such as opening the connection, compiling the first statements and filling caches.
+
+![ObjectBox and SQLite Summary](images/sqlite_summary.png)
+
+### Warm
+
+Each operation first runs once untimed in the same process, the database is restored to its state before that run, and then the operation is timed (see [Detailed results: warm](#detailed-results-warm)).
+
+![ObjectBox and SQLite Summary, warm](images/sqlite_warm_summary.png)
+
+Geometric means, cold vs. warm:
+
+| Database / ORM | Test 1 cold | Test 1 warm | Test 2 cold | Test 2 warm | Test 3 cold | Test 3 warm |
+|-----|------------:|------------:|------------:|------------:|------------:|------------:|
+| ObjectBox | **63,985** | **79,130** (×1.24) | **61,832** | **76,823** (×1.24) | **27,535** | **33,852** (×1.23) |
+| Django | 9,887 | 10,986 (×1.11) | 8,450 | 9,101 (×1.08) | 5,395 | 5,772 (×1.07) |
+| peewee | 19,539 | 21,691 (×1.11) | 18,323 | 20,728 (×1.13) | 8,904 | 9,407 (×1.06) |
+| SA ORM | 13,955 | 17,136 (×1.23) | 10,486 | 13,072 (×1.25) | 9,648 | 11,645 (×1.21) |
+| SA ORM async | 2,819 | 2,813 (×1.00) | 2,719 | 2,724 (×1.00) | 2,170 | 2,171 (×1.00) |
+| SQLObject | 8,364 | 9,168 (×1.10) | 8,133 | 9,065 (×1.11) | 6,174 | 6,744 (×1.09) |
+| Tortoise ORM | 9,203 | 9,359 (×1.02) | 9,080 | 9,324 (×1.03) | 6,290 | 6,481 (×1.03) |
+| Piccolo | 2,302 | 2,324 (×1.01) | 2,294 | 2,240 (×0.98) | 1,509 | 1,534 (×1.02) |
+| ormar | 1,783 | 1,804 (×1.01) | 1,748 | 1,722 (×0.99) | 976 | 1,004 (×1.03) |
+| SQLModel | 14,372 | 17,180 (×1.20) | 14,170 | 16,834 (×1.19) | 9,318 | 11,156 (×1.20) |
+| SQLModel async | 2,751 | 2,728 (×0.99) | 2,635 | 2,752 (×1.04) | 2,013 | 2,056 (×1.02) |
+
+### Large table (~20,000 rows)
+
+The same operations, but D–K run on ~20,100 rows instead of ~300: the untimed step that deletes most of the 20,000 rows that Insert: Batch and Insert: Bulk added is skipped (`LARGE_TABLE=1`). Filter: Large returns ~67x more rows per query, and Update: Whole, Update: Partial and Delete change all rows in one transaction, so its durable commit is spread over ~20,100 rows instead of ~300. Separate runs; detailed tables in [large-table.md](large-table.md).
+
+![ObjectBox and SQLite Summary, large table](images/sqlite_large_summary.png)
+
+![ObjectBox and SQLite Summary, large table, warm](images/sqlite_large_warm_summary.png)
+
+Geometric means, large table, cold vs. warm:
+
+| Database / ORM | Test 1 cold | Test 1 warm | Test 2 cold | Test 2 warm | Test 3 cold | Test 3 warm |
+|-----|------------:|------------:|------------:|------------:|------------:|------------:|
+| ObjectBox | **98,011** | **108,306** (×1.11) | **90,446** | **102,911** (×1.14) | **37,444** | **40,854** (×1.09) |
+| Django | 14,215 | 14,610 (×1.03) | 11,044 | 11,444 (×1.04) | 6,770 | 6,826 (×1.01) |
+| peewee | 26,396 | 27,487 (×1.04) | 24,323 | 25,777 (×1.06) | 10,556 | 10,698 (×1.01) |
+| SA ORM | 30,336 | 31,570 (×1.04) | 14,433 | 15,863 (×1.10) | 16,556 | 17,525 (×1.06) |
+| SA ORM async | 8,211 | 8,311 (×1.01) | 5,861 | 5,917 (×1.01) | 5,468 | 5,641 (×1.03) |
+| SQLObject | 19,346 | 19,650 (×1.02) | 17,513 | 17,894 (×1.02) | 12,799 | 13,217 (×1.03) |
+| Tortoise ORM | 18,188 | 19,637 (×1.08) | 12,974 | 13,627 (×1.05) | 12,289 | 11,396 (×0.93) |
+| Piccolo | 5,802 | 5,795 (×1.00) | 4,565 | 4,581 (×1.00) | 3,249 | 3,272 (×1.01) |
+| ormar | 3,802 | 3,845 (×1.01) | 3,366 | 3,439 (×1.02) | 1,809 | 1,842 (×1.02) |
+| SQLModel | 29,435 | 30,833 (×1.05) | 28,911 | 30,608 (×1.06) | 15,634 | 16,378 (×1.05) |
+| SQLModel async | 7,807 | 8,006 (×1.03) | 7,745 | 7,761 (×1.00) | 5,364 | 5,540 (×1.03) |
+
+---
+
+## Setup
+
+**Tested:**
+
+| Database / ORM | Type | Driver |
+|----------------|------|--------|
+| [ObjectBox](https://github.com/objectbox/objectbox-python) | sync | embedded (own storage engine) |
+| [Django](https://www.djangoproject.com/) | sync | sqlite3 |
+| [peewee](https://github.com/coleifer/peewee) | sync | sqlite3 |
+| [SQLAlchemy ORM](http://www.sqlalchemy.org/) ("SA ORM") | sync | sqlite3 |
+| [SQLAlchemy ORM (async)](http://www.sqlalchemy.org/) | async | aiosqlite |
+| [SQLObject](https://github.com/sqlobject/sqlobject) | sync | sqlite3 |
+| [Tortoise ORM](https://github.com/tortoise/tortoise-orm) | async | aiosqlite |
+| [Piccolo](https://github.com/piccolo-orm/piccolo) | async | aiosqlite |
+| [ormar](https://github.com/collerek/ormar) | async | aiosqlite |
+| [SQLModel](https://github.com/tiangolo/sqlmodel) | sync | sqlite3 |
+| [SQLModel (async)](https://github.com/tiangolo/sqlmodel) | async | aiosqlite |
+
+> **Environment:** Python 3.14.6, SQLite 3.53.1 (bundled with uv's CPython build), Linux x86_64 (AMD Ryzen 9 5950X, ext4 on NVMe), 100 iterations per operation (Insert: Batch and Insert: Bulk: 10,000 objects), CPU frequency governor `performance`, 1-minute load average below 1 before each ORM run. Each value is the median of 5 full runs (2026-10-18/19; warm peewee and Tortoise ORM: 5 runs of their own on 2026-10-19 after a fix to the warm-up restore; see [raw results](raw-results/2026-10-18/), which also lists the changes since the previous results). SQLite runs with `synchronous=FULL` (its compiled-in default), so every committed transaction is synced to disk, as with ObjectBox.
+>
+> ObjectBox is an embedded object database with its own storage engine, not an ORM on top of SQL. It uses the 5.0.0b1 beta (on TestPyPI) with its experimental FlatBuffers codegen for writes and reads enabled (`OBX_CODEGEN=0` disables it). Differences to the SQL ORMs: Test 2 uses plain indexed ids (the Python binding has no relations), Test 3 stores decimals as strings, JSON as JSON strings (like the SQL ORMs store it as text) and leaves "nullable" columns unset (no NULL support), and Update: Partial writes the whole object.
+
+### Operations
 
 | Code | Operation | Description |
 |------|-----------|-------------|
 | A | Insert: Single | Insert one row at a time |
-| B | Insert: Batch | Insert many rows in a single transaction |
-| C | Insert: Bulk | Use bulk insert operations |
+| B | Insert: Batch | Insert 10,000 rows in a single transaction, one save per row |
+| C | Insert: Bulk | Insert 10,000 rows with the ORM's bulk insert API |
 | D | Filter: Large | Fetch a large result set |
 | E | Filter: Small | Fetch limit 20 with random offset |
 | F | Get | Fetch a single row by primary key |
-| G | Filter: dict | Fetch large result set as dicts |
-| H | Filter: tuple | Fetch large result set as tuples |
 | I | Update: Whole | Update all fields of a row |
 | J | Update: Partial | Update a single field |
 | K | Delete | Delete a single row |
 
-## Test Models
+The suite also measures fetching a large result set as dicts (G) and as tuples (H) for the SQL ORMs; these aren't object operations, so they're left out of the tables, charts and geometric means (the raw results contain them). ObjectBox has no projection API for them.
+
+Only persisting is timed: the insert operations create the unsaved objects before the timer starts, and the update operations choose the new values before it, so creating objects (including field defaults) and generating test data don't count. SQLObject inserts the row when it creates the object, so for SQLObject only the field values are prepared; peewee's bulk insert prepares row tuples and applies defaults while inserting. Right before the timer starts, each test runs `gc.collect()` and `gc.freeze()`, so garbage from the preparation isn't collected while timed.
+
+B and C insert 10,000 objects (`BATCH_SIZE`); the other operations run 100 iterations. A durable commit costs ~8 ms here, so with 100 objects per transaction (the setting before 2026-10-18) B and C mostly measured that one commit, not the inserts. After B and after C, an untimed step deletes the newest 9,900 rows again, so D–K run on ~300 rows. The [large-table results](#large-table-20000-rows) skip that step (`LARGE_TABLE=1`): D–K run on ~20,100 rows.
+
+Insert: Bulk uses each ORM's fastest bulk path. Only Django (`bulk_create()`), Piccolo (`insert()`) and ObjectBox (`put()` of a list) set the new IDs on the inserted objects. SA ORM and SQLModel, sync and async (`bulk_save_objects()`), Tortoise ORM and ormar (`bulk_create()`) and peewee (`insert_many()` of row tuples) don't: to use the IDs, the objects have to be read back. In SA ORM and SQLModel, `session.add_all()` does set the IDs, but it inserts row by row, like Insert: Batch. Piccolo and ormar split the insert into chunks within one transaction, as SQLite allows at most 32,766 variables per statement.
+
+### Test Models
 
 **Test 1 — Simple model** (4 fields): `id`, `timestamp`, `level` (indexed), `text` (indexed)
 
@@ -44,246 +128,171 @@ Comprehensive performance benchmarks comparing popular Python ORMs across Postgr
 
 ---
 
-## Results: PostgreSQL 17
+## Detailed results: cold
 
-PostgreSQL 17 in Docker. Driver: `asyncpg` for async ORMs, `psycopg2` for sync ORMs.
-
-### Overview
-
-![PostgreSQL Summary](images/pg_summary.png)
+SQLite on the local filesystem (`/tmp/db.sqlite3`), ObjectBox in `/tmp/objectbox-bench`. SQLite allows one writer at a time, so the benchmark is single-threaded; async ORMs pay overhead without a concurrency benefit. These are cold numbers; see [Detailed results: warm](#detailed-results-warm) for runs with a warm-up run before each operation. The charts per test use a logarithmic scale (rows/sec range from ~50 to ~1,000,000), so equal bar-height differences mean equal ratios.
 
 ### Test 1: Simple Model (4 fields)
 
-![PostgreSQL Test 1](images/pg_test1.png)
+![ObjectBox and SQLite Test 1](images/sqlite_test1.png)
 
-| Operation | Django | peewee | SA ORM async | SQLObject | Tortoise ORM | Piccolo | ormar | SQLModel | Best |
-|-----------|--------|--------|--------------|-----------|--------------|---------|-------|----------|------|
-| Insert: Single | 776 | 651 | 584 | 699 | **3,455** | 3,240 | 283 | 540 | Tortoise ORM |
-| Insert: Batch | 2,069 | 2,418 | 1,154 | 1,575 | **14,033** | 12,138 | 1,048 | 1,081 | Tortoise ORM |
-| Insert: Bulk | 5,224 | 5,009 | 1,264 | — | **18,807** | 18,060 | 1,178 | 1,079 | Tortoise ORM |
-| Filter: Large | 57,451 | 62,009 | 32,318 | 50,694 | 143,810 | **147,031** | 19,735 | 32,389 | Piccolo |
-| Filter: Small | 19,491 | 18,066 | 7,532 | 24,844 | **60,699** | 45,805 | 5,501 | 6,444 | Tortoise ORM |
-| Get | 2,183 | 2,590 | 1,894 | 3,341 | 6,420 | **6,854** | 846 | 1,792 | Piccolo |
-| Filter: dict | 64,394 | 81,652 | 33,798 | — | 209,380 | **328,124** | 26,777 | 31,117 | Piccolo |
-| Filter: tuple | 55,080 | 66,827 | 37,933 | — | 197,175 | **332,310** | 23,286 | 34,411 | Piccolo |
-| Update: Whole | 2,896 | 3,555 | 1,743 | 1,995 | **17,407** | 13,491 | 2,538 | 1,781 | Tortoise ORM |
-| Update: Partial | 3,281 | 4,812 | 1,526 | 3,802 | **18,255** | 16,180 | 2,740 | 1,856 | Tortoise ORM |
-| Delete | 3,386 | 5,701 | 1,869 | 843 | **21,010** | 18,968 | 2,890 | 1,895 | Tortoise ORM |
-| **Geometric Mean** | 7,108 | 8,257 | 3,816 | 3,622 | 29,381 | **29,514** | 3,233 | 3,660 | **Piccolo** |
+| Operation | Django | peewee | SA ORM | SA ORM async | SQLObject | Tortoise ORM | Piccolo | ormar | SQLModel | SQLModel async | ObjectBox | Best |
+|-----------|--------|--------|--------|--------------|-----------|--------------|---------|-------|----------|----------------|-----------|------|
+| Insert: Single | 54 | 160 | 53 | 49 | 54 | 160 | 49 | 46 | 53 | 49 | **246** | ObjectBox |
+| Insert: Batch | 15,700 | 26,062 | 45,780 | 9,991 | 14,632 | 19,923 | 5,260 | 3,321 | 46,264 | 9,133 | **186,830** | ObjectBox |
+| Insert: Bulk | 79,499 | 101,765 | 124,122 | 21,006 | — | 80,086 | 17,739 | 16,821 | 127,314 | 17,152 | **225,900** | ObjectBox |
+| Filter: Large | 172,185 | 230,507 | 190,512 | 46,331 | 83,199 | 82,249 | 47,441 | 27,313 | 181,031 | 49,166 | **461,065** | ObjectBox |
+| Filter: Small | 53,981 | 90,522 | 50,015 | 22,991 | 39,829 | 49,027 | 21,496 | 12,788 | 57,535 | 24,262 | **265,819** | ObjectBox |
+| Get | 7,354 | 12,305 | 8,319 | 3,756 | 15,592 | 8,426 | 2,499 | 1,561 | 9,905 | 3,673 | **153,835** | ObjectBox |
+| Update: Whole | 5,552 | 8,638 | 8,807 | 649 | 6,335 | 3,414 | 540 | 452 | 8,610 | 649 | **21,330** | ObjectBox |
+| Update: Partial | 5,852 | 18,607 | 9,467 | 651 | 9,512 | 3,950 | 538 | 534 | 9,417 | 648 | **60,976** | ObjectBox |
+| Delete | 6,059 | 23,710 | 10,038 | 644 | 9,723 | 4,047 | 539 | 536 | 9,940 | 644 | **70,710** | ObjectBox |
+| **Geometric Mean** | 9,887 | 19,539 | 13,955 | 2,819 | 8,364 | 9,203 | 2,302 | 1,783 | 14,372 | 2,751 | **63,985** | **ObjectBox** |
 
 ### Test 2: FK Relations
 
-![PostgreSQL Test 2](images/pg_test2.png)
+![ObjectBox and SQLite Test 2](images/sqlite_test2.png)
 
-| Operation | Django | peewee | SA ORM async | SQLObject | Tortoise ORM | Piccolo | ormar | SQLModel | Best |
-|-----------|--------|--------|--------------|-----------|--------------|---------|-------|----------|------|
-| Insert: Single | 765 | 822 | 564 | 517 | **3,350** | 3,075 | 264 | 521 | Tortoise ORM |
-| Insert: Batch | 2,654 | 2,477 | 1,184 | 1,140 | **12,355** | 8,785 | 1,067 | 1,061 | Tortoise ORM |
-| Insert: Bulk | 4,733 | 5,863 | 1,146 | — | **21,969** | 12,461 | 1,157 | 1,120 | Tortoise ORM |
-| Filter: Large | 59,181 | 58,026 | 32,641 | 47,745 | **137,275** | 115,754 | 14,400 | 32,614 | Tortoise ORM |
-| Filter: Small | 16,460 | 19,514 | 6,792 | 29,200 | 47,951 | **50,408** | 4,899 | 8,051 | Piccolo |
-| Get | 2,394 | 2,605 | 1,905 | 1,440 | **5,870** | 5,665 | 787 | 1,922 | Tortoise ORM |
-| Filter: dict | 73,174 | 78,313 | 33,632 | — | 207,239 | **303,737** | 25,848 | 31,831 | Piccolo |
-| Filter: tuple | 65,459 | 70,256 | 34,130 | — | 192,246 | **284,733** | 29,597 | 36,273 | Piccolo |
-| Update: Whole | 3,216 | 3,791 | 1,598 | 1,907 | **16,647** | 12,217 | 2,400 | 1,665 | Tortoise ORM |
-| Update: Partial | 3,392 | 4,586 | 1,729 | 4,022 | **18,796** | 15,065 | 2,442 | 1,781 | Tortoise ORM |
-| Delete | 866 | 5,880 | 896 | 629 | **17,921** | 12,984 | 2,940 | 1,711 | Tortoise ORM |
-| **Geometric Mean** | 6,587 | 8,631 | 3,484 | 2,949 | **27,860** | 24,918 | 3,082 | 3,710 | **Tortoise ORM** |
+| Operation | Django | peewee | SA ORM | SA ORM async | SQLObject | Tortoise ORM | Piccolo | ormar | SQLModel | SQLModel async | ObjectBox | Best |
+|-----------|--------|--------|--------|--------------|-----------|--------------|---------|-------|----------|----------------|-----------|------|
+| Insert: Single | 54 | 160 | 53 | 49 | 54 | 160 | 49 | 48 | 53 | 49 | **235** | ObjectBox |
+| Insert: Batch | 14,523 | 25,078 | 30,330 | 9,016 | 13,796 | 19,849 | 4,985 | 3,308 | 44,909 | 9,090 | **174,948** | ObjectBox |
+| Insert: Bulk | 71,208 | 98,542 | 124,462 | 20,371 | — | 78,639 | 20,585 | 14,127 | 124,009 | 17,109 | **226,388** | ObjectBox |
+| Filter: Large | 156,486 | 193,262 | 156,160 | 44,995 | 78,488 | 79,984 | 45,139 | 28,486 | 179,520 | 41,869 | **454,273** | ObjectBox |
+| Filter: Small | 57,393 | 79,682 | 43,669 | 22,416 | 39,688 | 48,582 | 20,769 | 12,112 | 55,997 | 20,114 | **246,231** | ObjectBox |
+| Get | 6,999 | 11,066 | 7,218 | 3,589 | 14,980 | 8,233 | 2,368 | 1,538 | 9,650 | 3,570 | **148,893** | ObjectBox |
+| Update: Whole | 5,314 | 8,179 | 8,063 | 645 | 6,371 | 3,416 | 539 | 452 | 8,555 | 648 | **21,132** | ObjectBox |
+| Update: Partial | 5,850 | 18,258 | 8,642 | 644 | 9,628 | 3,963 | 539 | 534 | 9,361 | 647 | **59,847** | ObjectBox |
+| Delete | 2,021 | 23,182 | 2,236 | 606 | 8,969 | 3,874 | 539 | 536 | 9,999 | 644 | **67,335** | ObjectBox |
+| **Geometric Mean** | 8,450 | 18,323 | 10,486 | 2,719 | 8,133 | 9,080 | 2,294 | 1,748 | 14,170 | 2,635 | **61,832** | **ObjectBox** |
 
 ### Test 3: Wide Model (32+ fields)
 
-![PostgreSQL Test 3](images/pg_test3.png)
+![ObjectBox and SQLite Test 3](images/sqlite_test3.png)
 
-| Operation | Django | peewee | SA ORM async | SQLObject | Tortoise ORM | Piccolo | ormar | SQLModel | Best |
-|-----------|--------|--------|--------------|-----------|--------------|---------|-------|----------|------|
-| Insert: Single | 660 | 712 | 555 | 683 | 1,560 | **2,761** | 177 | 507 | Piccolo |
-| Insert: Batch | 1,580 | 1,338 | 1,137 | 1,280 | **8,077** | 4,627 | 542 | 953 | Tortoise ORM |
-| Insert: Bulk | 3,374 | 3,074 | 1,187 | — | **9,571** | 5,596 | 814 | 971 | Tortoise ORM |
-| Filter: Large | 32,188 | 25,686 | 26,031 | 26,710 | **50,995** | 29,431 | 2,893 | 23,445 | Tortoise ORM |
-| Filter: Small | 8,946 | 9,546 | 7,167 | 20,497 | **31,247** | 18,652 | 2,105 | 5,997 | Tortoise ORM |
-| Get | 1,541 | 1,311 | 1,773 | 2,288 | **5,056** | 3,563 | 626 | 1,708 | Tortoise ORM |
-| Filter: dict | 28,900 | 32,299 | 22,351 | — | 71,887 | **121,813** | 6,883 | 22,634 | Piccolo |
-| Filter: tuple | 34,619 | 30,980 | 29,794 | — | 66,990 | **121,798** | 6,353 | 29,111 | Piccolo |
-| Update: Whole | 2,067 | 1,386 | 1,620 | 2,150 | **12,590** | 5,181 | 1,375 | 1,559 | Tortoise ORM |
-| Update: Partial | 3,113 | 3,960 | 1,689 | 3,873 | **19,986** | 5,512 | 59 | 1,680 | Tortoise ORM |
-| Delete | 3,480 | 4,915 | 1,728 | 769 | **22,214** | 14,305 | 2,595 | 1,574 | Tortoise ORM |
-| **Geometric Mean** | 4,851 | 4,712 | 3,432 | 3,025 | **16,587** | 12,145 | 1,097 | 3,152 | **Tortoise ORM** |
+| Operation | Django | peewee | SA ORM | SA ORM async | SQLObject | Tortoise ORM | Piccolo | ormar | SQLModel | SQLModel async | ObjectBox | Best |
+|-----------|--------|--------|--------|--------------|-----------|--------------|---------|-------|----------|----------------|-----------|------|
+| Insert: Single | 53 | 159 | 53 | 49 | 54 | 159 | 48 | 46 | 53 | 48 | **210** | ObjectBox |
+| Insert: Batch | 6,030 | 9,657 | 23,230 | 8,376 | 6,681 | 15,061 | 3,480 | 1,022 | 20,292 | 7,773 | **57,326** | ObjectBox |
+| Insert: Bulk | 17,878 | 24,721 | 53,386 | 21,232 | — | 38,744 | 9,322 | 3,006 | 43,601 | 15,835 | **65,741** | ObjectBox |
+| Filter: Large | 51,929 | 49,379 | 75,525 | 15,586 | 41,581 | 31,226 | 11,509 | 8,783 | 68,446 | 12,845 | **97,091** | ObjectBox |
+| Filter: Small | 25,542 | 27,156 | 29,650 | 9,843 | 26,075 | 22,567 | 8,398 | 6,142 | 31,842 | 9,509 | **73,252** | ObjectBox |
+| Get | 3,974 | 4,141 | 6,993 | 2,990 | 9,947 | 5,357 | 1,726 | 1,126 | 7,649 | 2,815 | **46,872** | ObjectBox |
+| Update: Whole | 3,937 | 4,068 | 8,113 | 648 | 6,232 | 2,920 | 536 | 387 | 7,950 | 646 | **15,890** | ObjectBox |
+| Update: Partial | 5,455 | 17,860 | 8,892 | 647 | 9,232 | 3,879 | 535 | 452 | 8,773 | 646 | **31,468** | ObjectBox |
+| Delete | 5,943 | 22,974 | 9,751 | 642 | 9,504 | 3,883 | 540 | 536 | 9,690 | 640 | **68,910** | ObjectBox |
+| **Geometric Mean** | 5,395 | 8,904 | 9,648 | 2,170 | 6,174 | 6,290 | 1,509 | 976 | 9,318 | 2,013 | **27,535** | **ObjectBox** |
 
----
+## Detailed results: warm
 
-## Results: MySQL 8
-
-MySQL 8 in Docker. Driver: `asyncmy` for Tortoise, `aiomysql` for SA async / ormar, `mysqlclient` for Django, `pymysql` for peewee / SQLObject. Piccolo does not support MySQL.
-
-### Overview
-
-![MySQL Summary](images/mysql_summary.png)
+In the cold results, each sync ORM runs every operation in a fresh process, so the timed loop also pays one-time costs such as opening a lazily opened connection, compiling the first statements, filling the ORM's caches and, for ObjectBox, compiling its codegen (imports are never timed). These runs use the warm-up mode (`WARMUP=1`): each operation first runs once untimed in the same process (async ORMs: the same event loop), the database is restored to its state before that run (rows and ID sequences), and then the operation runs again and is timed. Same machine, versions and settings as the cold results; each value is the median of 5 full runs.
 
 ### Test 1: Simple Model (4 fields)
 
-![MySQL Test 1](images/mysql_test1.png)
+![ObjectBox and SQLite Test 1, warm](images/sqlite_warm_test1.png)
 
-| Operation | Django | peewee | SA ORM async | SQLObject | Tortoise ORM | ormar | SQLModel | Best |
-|-----------|--------|--------|--------------|-----------|--------------|-------|----------|------|
-| Insert: Single | 460 | 475 | 1,260 | 386 | **2,226** | 1,218 | 1,198 | Tortoise ORM |
-| Insert: Batch | 1,685 | 3,403 | 4,425 | 1,743 | **10,352** | 3,903 | 3,639 | Tortoise ORM |
-| Insert: Bulk | 2,888 | 8,244 | 4,704 | — | **13,545** | 5,669 | 3,614 | Tortoise ORM |
-| Filter: Large | 53,093 | 57,706 | 70,552 | 49,274 | **98,361** | 29,059 | 62,415 | Tortoise ORM |
-| Filter: Small | 13,216 | 19,768 | 31,251 | 23,637 | **52,596** | 16,702 | 33,064 | Tortoise ORM |
-| Get | 2,058 | 2,065 | 4,486 | 3,340 | **6,891** | 1,753 | 4,132 | Tortoise ORM |
-| Filter: dict | 65,185 | 64,735 | 77,599 | — | **126,411** | 67,878 | 65,702 | Tortoise ORM |
-| Filter: tuple | 62,068 | 57,817 | 101,337 | — | **124,069** | 69,064 | 99,444 | Tortoise ORM |
-| Update: Whole | 2,422 | 3,203 | 2,376 | 2,211 | **12,485** | 5,086 | 2,152 | Tortoise ORM |
-| Update: Partial | 3,568 | 4,624 | 2,510 | 6,088 | **14,040** | 6,045 | 2,439 | Tortoise ORM |
-| Delete | 3,421 | 4,937 | 2,574 | 406 | **13,740** | 8,243 | 2,515 | Tortoise ORM |
-| **Geometric Mean** | 6,035 | 8,000 | 8,998 | 3,307 | **21,351** | 8,885 | 8,221 | **Tortoise ORM** |
+| Operation | Django | peewee | SA ORM | SA ORM async | SQLObject | Tortoise ORM | Piccolo | ormar | SQLModel | SQLModel async | ObjectBox | Best |
+|-----------|--------|--------|--------|--------------|-----------|--------------|---------|-------|----------|----------------|-----------|------|
+| Insert: Single | 54 | 161 | 54 | 49 | 54 | 160 | 49 | 47 | 54 | 49 | **245** | ObjectBox |
+| Insert: Batch | 16,483 | 26,045 | 46,837 | 9,114 | 14,525 | 20,690 | 5,360 | 3,326 | 48,892 | 9,162 | **199,003** | ObjectBox |
+| Insert: Bulk | 81,830 | 121,472 | 142,979 | 20,938 | — | 89,231 | 17,824 | 15,050 | 132,777 | 16,947 | **248,341** | ObjectBox |
+| Filter: Large | 185,561 | 240,095 | 216,134 | 50,272 | 88,463 | 79,936 | 49,818 | 28,321 | 205,529 | 46,168 | **500,454** | ObjectBox |
+| Filter: Small | 61,224 | 90,879 | 71,652 | 23,096 | 48,363 | 45,732 | 21,533 | 12,637 | 68,305 | 23,960 | **322,597** | ObjectBox |
+| Get | 7,809 | 12,621 | 9,055 | 3,759 | 17,170 | 8,278 | 2,493 | 1,568 | 10,863 | 3,702 | **218,056** | ObjectBox |
+| Update: Whole | 6,712 | 15,787 | 12,535 | 650 | 9,079 | 3,856 | 539 | 533 | 12,240 | 648 | **60,973** | ObjectBox |
+| Update: Partial | 7,192 | 19,418 | 13,725 | 650 | 9,716 | 3,952 | 539 | 534 | 13,574 | 647 | **65,738** | ObjectBox |
+| Delete | 7,490 | 24,670 | 14,720 | 645 | 9,834 | 4,038 | 539 | 536 | 14,808 | 644 | **71,174** | ObjectBox |
+| **Geometric Mean** | 10,986 | 21,691 | 17,136 | 2,813 | 9,168 | 9,359 | 2,324 | 1,804 | 17,180 | 2,728 | **79,130** | **ObjectBox** |
 
 ### Test 2: FK Relations
 
-![MySQL Test 2](images/mysql_test2.png)
+![ObjectBox and SQLite Test 2, warm](images/sqlite_warm_test2.png)
 
-| Operation | Django | peewee | SA ORM async | SQLObject | Tortoise ORM | ormar | SQLModel | Best |
-|-----------|--------|--------|--------------|-----------|--------------|-------|----------|------|
-| Insert: Single | 477 | 525 | 1,173 | 399 | **1,777** | 952 | 1,063 | Tortoise ORM |
-| Insert: Batch | 2,458 | 3,374 | 4,873 | 1,825 | **8,299** | 3,278 | 3,853 | Tortoise ORM |
-| Insert: Bulk | 4,029 | **12,401** | 3,807 | — | 7,852 | 5,261 | 3,452 | peewee |
-| Filter: Large | 60,201 | 50,582 | 71,476 | 46,076 | **95,298** | 21,057 | 69,532 | Tortoise ORM |
-| Filter: Small | 13,404 | 14,109 | 26,652 | 21,838 | **58,097** | 8,354 | 31,293 | Tortoise ORM |
-| Get | 2,146 | 2,171 | 3,965 | 3,227 | **7,188** | 1,719 | 4,333 | Tortoise ORM |
-| Filter: dict | 70,525 | 63,725 | 70,878 | — | **122,091** | 48,115 | 54,117 | Tortoise ORM |
-| Filter: tuple | 59,955 | 42,729 | 102,362 | — | **120,419** | 41,905 | 103,458 | Tortoise ORM |
-| Update: Whole | 2,443 | 3,229 | 2,026 | 2,140 | **7,588** | 4,045 | 2,187 | Tortoise ORM |
-| Update: Partial | 3,774 | 3,953 | 2,183 | 4,642 | **11,806** | 5,555 | 2,565 | Tortoise ORM |
-| Delete | 917 | 5,191 | 883 | 328 | **12,982** | 5,491 | 2,461 | Tortoise ORM |
-| **Geometric Mean** | 5,883 | 7,759 | 7,567 | 3,061 | **18,337** | 6,707 | 8,134 | **Tortoise ORM** |
+| Operation | Django | peewee | SA ORM | SA ORM async | SQLObject | Tortoise ORM | Piccolo | ormar | SQLModel | SQLModel async | ObjectBox | Best |
+|-----------|--------|--------|--------|--------------|-----------|--------------|---------|-------|----------|----------------|-----------|------|
+| Insert: Single | 54 | 161 | 53 | 49 | 54 | 161 | 49 | 46 | 54 | 49 | **238** | ObjectBox |
+| Insert: Batch | 14,795 | 26,393 | 31,444 | 9,168 | 13,646 | 20,524 | 4,985 | 3,308 | 45,413 | 9,126 | **179,491** | ObjectBox |
+| Insert: Bulk | 73,159 | 119,021 | 144,639 | 20,442 | — | 86,345 | 17,115 | 12,694 | 127,065 | 20,231 | **234,197** | ObjectBox |
+| Filter: Large | 168,837 | 202,751 | 211,613 | 46,175 | 86,462 | 79,001 | 46,219 | 28,793 | 197,596 | 48,154 | **489,132** | ObjectBox |
+| Filter: Small | 63,013 | 89,639 | 72,104 | 21,997 | 53,383 | 49,204 | 19,783 | 12,033 | 65,521 | 21,334 | **322,790** | ObjectBox |
+| Get | 7,409 | 11,842 | 8,767 | 3,601 | 16,777 | 8,141 | 2,362 | 1,525 | 10,840 | 3,614 | **216,146** | ObjectBox |
+| Update: Whole | 6,439 | 14,253 | 11,261 | 646 | 9,035 | 3,824 | 538 | 452 | 12,369 | 648 | **61,255** | ObjectBox |
+| Update: Partial | 7,150 | 19,044 | 12,278 | 645 | 9,755 | 3,986 | 539 | 534 | 13,685 | 648 | **64,840** | ObjectBox |
+| Delete | 2,011 | 23,909 | 2,477 | 594 | 9,049 | 3,874 | 540 | 536 | 14,763 | 644 | **68,849** | ObjectBox |
+| **Geometric Mean** | 9,101 | 20,728 | 13,072 | 2,724 | 9,065 | 9,324 | 2,240 | 1,722 | 16,834 | 2,752 | **76,823** | **ObjectBox** |
 
 ### Test 3: Wide Model (32+ fields)
 
-![MySQL Test 3](images/mysql_test3.png)
+![ObjectBox and SQLite Test 3, warm](images/sqlite_warm_test3.png)
 
-| Operation | Django | peewee | SA ORM async | SQLObject | Tortoise ORM | ormar | SQLModel | Best |
-|-----------|--------|--------|--------------|-----------|--------------|-------|----------|------|
-| Insert: Single | 368 | 366 | 1,318 | 342 | **1,331** | 703 | 1,071 | Tortoise ORM |
-| Insert: Batch | 1,583 | 2,076 | 4,225 | 1,372 | **4,384** | 860 | 2,405 | Tortoise ORM |
-| Insert: Bulk | 2,623 | 3,506 | 3,403 | — | **6,167** | 2,290 | 2,400 | Tortoise ORM |
-| Filter: Large | 30,557 | 16,564 | 27,000 | 30,339 | **35,672** | 3,393 | 22,934 | Tortoise ORM |
-| Filter: Small | 8,812 | 6,830 | 14,421 | 16,180 | **23,723** | 2,765 | 14,136 | Tortoise ORM |
-| Get | 1,616 | 1,017 | 2,270 | 2,656 | **4,014** | 839 | 2,187 | Tortoise ORM |
-| Filter: dict | 30,032 | 18,525 | 22,793 | — | **48,723** | 7,504 | 22,733 | Tortoise ORM |
-| Filter: tuple | 35,392 | 21,983 | 31,740 | — | **41,779** | 7,659 | 29,487 | Tortoise ORM |
-| Update: Whole | 1,852 | 1,590 | 1,456 | 2,207 | **8,684** | 1,715 | 1,410 | Tortoise ORM |
-| Update: Partial | 3,407 | 4,148 | 1,512 | 5,091 | **13,981** | 5,052 | 1,517 | Tortoise ORM |
-| Delete | 3,166 | 4,352 | 1,559 | 401 | **16,320** | 7,646 | 1,450 | Tortoise ORM |
-| **Geometric Mean** | 4,466 | 3,943 | 4,928 | 2,692 | **11,560** | 2,629 | 4,292 | **Tortoise ORM** |
-
----
-
-## Results: SQLite
-
-SQLite on local filesystem (`/tmp/db.sqlite3`). This benchmark is inherently single-threaded due to SQLite's write lock — async ORMs pay overhead without concurrency benefit.
-
-### Overview
-
-![SQLite Summary](images/sqlite_summary.png)
-
-### Test 1: Simple Model (4 fields)
-
-![SQLite Test 1](images/sqlite_test1.png)
-
-| Operation | Django | peewee | SA ORM async | SQLObject | Tortoise ORM | Piccolo | ormar | SQLModel | Best |
-|-----------|--------|--------|--------------|-----------|--------------|---------|-------|----------|------|
-| Insert: Single | 2,177 | **6,887** | 1,247 | 2,368 | 5,693 | 922 | 982 | 755 | peewee |
-| Insert: Batch | 13,050 | **15,823** | 788 | 12,294 | 12,693 | 473 | 787 | 742 | peewee |
-| Insert: Bulk | 19,043 | **37,108** | 783 | — | 33,060 | 772 | 1,957 | 727 | peewee |
-| Filter: Large | **181,041** | 87,912 | 39,863 | 84,364 | 167,777 | 39,248 | 26,140 | 40,523 | Django |
-| Filter: Small | 55,653 | 47,699 | 26,652 | **79,460** | 78,915 | 21,409 | 13,599 | 24,095 | SQLObject |
-| Get | 8,475 | 8,587 | 3,567 | **19,691** | 9,168 | 2,697 | 2,308 | 3,506 | SQLObject |
-| Filter: dict | 223,613 | 118,764 | 50,330 | — | **272,534** | 51,683 | 56,673 | 50,218 | Tortoise ORM |
-| Filter: tuple | 231,802 | 121,041 | 59,008 | — | **253,995** | 51,491 | 50,314 | 63,741 | Tortoise ORM |
-| Update: Whole | 11,260 | 15,287 | 780 | **28,612** | 20,541 | 1,409 | 1,096 | 781 | SQLObject |
-| Update: Partial | 13,214 | 21,100 | 792 | **51,521** | 25,921 | 1,132 | 1,117 | 797 | SQLObject |
-| Delete | 14,542 | **28,985** | 780 | 2,595 | 27,807 | 1,432 | 1,117 | 788 | peewee |
-| **Geometric Mean** | 26,828 | 30,273 | 3,998 | 18,661 | **38,766** | 4,037 | 4,052 | 3,770 | **Tortoise ORM** |
-
-### Test 2: FK Relations
-
-![SQLite Test 2](images/sqlite_test2.png)
-
-| Operation | Django | peewee | SA ORM async | SQLObject | Tortoise ORM | Piccolo | ormar | SQLModel | Best |
-|-----------|--------|--------|--------------|-----------|--------------|---------|-------|----------|------|
-| Insert: Single | 2,318 | 6,054 | 963 | 2,378 | **7,196** | 811 | 959 | 743 | Tortoise ORM |
-| Insert: Batch | 11,460 | **15,173** | 640 | 11,594 | 14,674 | 479 | 1,025 | 446 | peewee |
-| Insert: Bulk | 22,416 | **37,593** | 784 | — | 34,248 | 999 | 1,993 | 595 | peewee |
-| Filter: Large | **165,462** | 90,441 | 47,522 | 82,871 | 158,489 | 40,063 | 17,435 | 38,255 | Django |
-| Filter: Small | 62,596 | 47,163 | 17,561 | 76,098 | **79,925** | 21,654 | 8,506 | 22,694 | Tortoise ORM |
-| Get | 7,721 | 8,114 | 2,860 | **18,681** | 8,993 | 2,323 | 2,130 | 3,650 | SQLObject |
-| Filter: dict | 207,814 | 115,182 | 29,339 | — | **247,155** | 51,369 | 48,807 | 45,120 | Tortoise ORM |
-| Filter: tuple | 218,169 | 115,580 | 46,677 | — | **237,584** | 50,876 | 51,575 | 64,276 | Tortoise ORM |
-| Update: Whole | 10,886 | 14,309 | 602 | **31,423** | 20,118 | 1,138 | 1,118 | 779 | SQLObject |
-| Update: Partial | 12,619 | 20,456 | 777 | **52,465** | 25,682 | 1,442 | 1,135 | 796 | SQLObject |
-| Delete | 2,680 | **28,103** | 362 | 2,472 | 20,670 | 1,114 | 1,113 | 788 | peewee |
-| **Geometric Mean** | 22,624 | 29,186 | 3,114 | 18,418 | **38,276** | 3,958 | 3,772 | 3,473 | **Tortoise ORM** |
-
-### Test 3: Wide Model (32+ fields)
-
-![SQLite Test 3](images/sqlite_test3.png)
-
-| Operation | Django | peewee | SA ORM async | SQLObject | Tortoise ORM | Piccolo | ormar | SQLModel | Best |
-|-----------|--------|--------|--------------|-----------|--------------|---------|-------|----------|------|
-| Insert: Single | 2,021 | **3,661** | 778 | 1,912 | 2,165 | 783 | 574 | 736 | peewee |
-| Insert: Batch | 6,182 | 6,638 | 636 | 5,903 | **7,752** | 639 | 442 | 573 | Tortoise ORM |
-| Insert: Bulk | 8,705 | **14,058** | 1,467 | — | 12,293 | 1,233 | 1,177 | 699 | peewee |
-| Filter: Large | **50,491** | 31,874 | 11,281 | 44,508 | 44,768 | 8,448 | 2,169 | 11,641 | Django |
-| Filter: Small | 29,980 | 17,509 | 12,006 | **41,667** | 28,139 | 6,583 | 1,908 | 9,970 | SQLObject |
-| Get | 4,200 | 2,706 | 2,798 | **10,627** | 6,039 | 1,656 | 723 | 2,574 | SQLObject |
-| Filter: dict | **64,349** | 42,897 | 11,465 | — | 50,009 | 11,879 | 5,346 | 10,259 | Django |
-| Filter: tuple | **70,890** | 45,657 | 10,093 | — | 48,596 | 12,978 | 4,926 | 12,255 | Django |
-| Update: Whole | 5,865 | 3,596 | 618 | **24,904** | 12,475 | 1,129 | 768 | 464 | SQLObject |
-| Update: Partial | 11,289 | 21,407 | 773 | **45,538** | 24,997 | 1,124 | 1,422 | 371 | SQLObject |
-| Delete | 14,027 | **29,225** | 778 | 2,270 | 27,356 | 1,148 | 1,416 | 774 | peewee |
-| **Geometric Mean** | 13,594 | 13,284 | 2,346 | 12,437 | **16,920** | 2,362 | 1,386 | 1,941 | **Tortoise ORM** |
+| Operation | Django | peewee | SA ORM | SA ORM async | SQLObject | Tortoise ORM | Piccolo | ormar | SQLModel | SQLModel async | ObjectBox | Best |
+|-----------|--------|--------|--------|--------------|-----------|--------------|---------|-------|----------|----------------|-----------|------|
+| Insert: Single | 54 | 160 | 53 | 49 | 54 | 159 | 49 | 47 | 54 | 49 | **211** | ObjectBox |
+| Insert: Batch | 6,016 | 9,858 | 23,557 | 8,120 | 6,696 | 15,056 | 3,608 | 1,069 | 20,863 | 7,772 | **57,141** | ObjectBox |
+| Insert: Bulk | 18,362 | 26,589 | 55,627 | 17,525 | — | 40,691 | 9,589 | 2,979 | 44,933 | 16,160 | **65,411** | ObjectBox |
+| Filter: Large | 53,704 | 50,369 | 85,741 | 17,147 | 44,112 | 31,579 | 11,740 | 8,548 | 77,616 | 13,810 | **102,670** | ObjectBox |
+| Filter: Small | 26,840 | 29,558 | 41,605 | 11,267 | 30,812 | 21,733 | 8,889 | 5,838 | 39,789 | 10,035 | **89,600** | ObjectBox |
+| Get | 3,983 | 4,225 | 7,835 | 2,965 | 10,888 | 5,340 | 1,736 | 1,104 | 8,804 | 2,891 | **80,120** | ObjectBox |
+| Update: Whole | 4,423 | 5,049 | 11,385 | 648 | 8,793 | 3,524 | 535 | 445 | 11,174 | 646 | **36,597** | ObjectBox |
+| Update: Partial | 6,485 | 18,298 | 12,453 | 648 | 9,509 | 3,963 | 536 | 532 | 12,395 | 646 | **38,641** | ObjectBox |
+| Delete | 7,293 | 23,703 | 14,208 | 643 | 9,609 | 4,039 | 539 | 536 | 14,172 | 642 | **71,018** | ObjectBox |
+| **Geometric Mean** | 5,772 | 9,407 | 11,645 | 2,171 | 6,744 | 6,481 | 1,534 | 1,004 | 11,156 | 2,056 | **33,852** | **ObjectBox** |
 
 ---
 
 ## Analysis
 
-### PostgreSQL — Async ORMs dominate
+### Cold: ObjectBox about 3x the best SQL ORM
 
-Tortoise ORM and Piccolo share the top spots. Both use `asyncpg`, which provides binary protocol encoding and connection pooling — a massive advantage over `psycopg2`-based sync ORMs. Piccolo leads on simple reads (Filter: dict/tuple) thanks to its ultra-thin result mapping layer, while Tortoise excels at writes (Insert, Update, Delete) and wins overall on the more complex Test 2 and Test 3 schemas.
+ObjectBox (embedded object database, experimental codegen for writes and reads) has the best geometric mean in all three tests, 2.9–3.4x the best SQL ORM (63,985 vs peewee's 19,539, 61,832 vs peewee's 18,323 and 27,535 vs SA ORM's 9,648). It is fastest in every operation: Get by 4.7–9.9x over the runner-up (SQLObject), Filter: Small by 2.3–3.1x, Filter: Large by 1.3–2.4x; Insert: Batch by 2.5–4.0x, Insert: Bulk by 1.2–1.8x, updates and deletes by 1.8–3.3x; Insert: Single (one synced commit each) by 1.3–1.5x over peewee and Tortoise ORM.
 
-### MySQL — Tortoise ORM leads decisively
+Among the SQL ORMs, peewee has the best geometric mean on Tests 1 and 2, followed by SQLModel and SA ORM; on the wide model (Test 3), SA ORM (9,648) and SQLModel (9,318) are ahead of peewee (8,904). peewee and Tortoise ORM run SQLite in WAL mode, the others with SQLite's default rollback journal: with one durable commit per row, Insert: Single is ~3x faster in WAL mode (160 vs 46–54 rows/sec), so their write results include that advantage. With 10,000 objects per transaction, the insert paths differ much more than with 100: SA ORM and SQLModel insert a batch at ~46,000 rows/sec on Test 1 (peewee ~26,000, Django ~16,000), and each SQL ORM's bulk insert is 2–5x faster than its batch insert (ObjectBox: 1.1–1.3x; its batch insert is already faster than any SQL ORM's bulk insert).
 
-Tortoise ORM wins every test by a wide margin (2x over the runner-up). The `asyncmy` driver (native async MySQL protocol) outperforms both `aiomysql` and sync `mysqlclient`/`pymysql`. SA ORM async is competitive on reads but falls behind on writes. Piccolo does not support MySQL.
+On SQLite, async adds overhead without any concurrency to gain (one writer at a time). The sync variants of SA ORM and SQLModel are 2–5x faster than their async variants on reads, 2.5–7x on batch/bulk inserts and 12–16x on updates and deletes (SA ORM's Delete on Test 2: 3.7x); single inserts, one synced commit each, are about the same. Tortoise ORM is the fastest async ORM, on par with Django (ahead on Tests 2 and 3).
 
-### SQLite — Sync ORMs are faster
+Insert: Bulk returns the new IDs only for Django, Piccolo and ObjectBox (see [Operations](#operations)); the others' bulk paths leave the objects without IDs.
 
-On SQLite, async overhead hurts more than it helps — there is no concurrency to exploit due to SQLite's single-writer lock. Sync ORMs (peewee, Django, SQLObject) avoid the `aiosqlite` polling overhead and win handily. peewee takes the overall crown, with Django dominating large filter operations and SQLObject excelling at single-row operations (Get, Update). Tortoise ORM remains the fastest async ORM on SQLite.
+### Warm: sync ORMs and ObjectBox gain, the order stays
+
+With a warm-up run, the sync ORMs' geometric means rise by 6–25% (SA ORM and SQLModel most), ObjectBox's by 23–24%; the async ORMs stay within ±4%: they run all operations in one process anyway, so earlier operations already paid most one-time costs. Insert: Single, bound by one synced commit per row, doesn't change. ObjectBox has the best geometric mean in all three tests, 2.9–3.7x the best SQL ORM (79,130 / 76,823 / 33,852 vs peewee's 21,691 / 20,728 and SA ORM's 11,645 on Test 3). Its biggest gains are Update: Whole (2.3–2.9x faster than cold) and Get (1.4–1.7x).
+
+### Large table: the commit is amortized, ObjectBox stays ahead
+
+With ~20,100 rows, updates and deletes spread their one durable commit over 67x more rows, so the geometric means rise 1.1–2.9x; ObjectBox again has the best one in all three tests, 2.3–3.2x the best SQL ORM cold (98,011 vs SA ORM's 30,336, 90,446 vs SQLModel's 28,911, 37,444 vs SA ORM's 16,556) and 2.3–3.4x warm. Among the SQL ORMs, SA ORM leads on Tests 1 and 3 and SQLModel on Test 2 (where SA ORM's Delete holds it back); peewee follows. Among the SQL ORMs, SQLObject has the fastest updates; on Test 3 it edges out ObjectBox on Update: Partial (57,789 vs 56,683 rows/sec). peewee is ~10% faster than ObjectBox on Filter: Small on Test 1 (122,009 vs 110,913) and on par on Test 2: ObjectBox's limit/offset query gets slower with ~4,000 instead of ~60 matching rows per level (266k rows/sec on the default table), while SQLite's index scan stops after the offset and 20 rows.
+
+Delete on Test 2 (FK relations) is the slowest operation on the large table for SA ORM (1,143 rows/sec), SA ORM async (1,272), Piccolo (1,434), Tortoise ORM (1,522), ormar (2,169) and Django (2,424), while peewee, SQLModel and SQLObject delete 44,000–102,000 rows/sec. SA ORM and Tortoise ORM get 2.0x and 2.5x slower per row than on ~300 rows (2,236 and 3,874); the likely cause is per-row lookups of related rows (children through the self-reference, M2M links) that grow with the table: in the SA ORM model, the self-referencing `parent_id` has no index.
+
+One more effect of the larger batches: the rows deleted after Insert: Batch and Insert: Bulk leave free space in the database files, so later writes mostly don't grow the files. For ObjectBox this makes update commits cheaper (fdatasync of the data file ~1.7 ms instead of ~6.2 ms when the file grows), so on Test 1 its Update: Whole and Update: Partial are 1.3x and 1.9x faster than with 100-object batches. A database that has been in use for a while is usually in this state too.
 
 ### Key takeaways
 
-- **For PostgreSQL/MySQL production workloads**: Tortoise ORM and Piccolo (PG only) offer the best throughput
-- **For SQLite/local development**: peewee and Django are faster due to lower async overhead
-- **SA ORM async / SQLModel**: Strong on reads but consistently slow on writes due to Session/UoW overhead. SQLModel tracks closely with SA ORM async (expected — it's a thin wrapper around SQLAlchemy)
+- **ObjectBox**: 2.3–3.7x the best SQL ORM's geometric mean (cold, warm and large table); fastest in every operation it runs except, on the large table, Filter: Small on Test 1 (peewee) and Update: Partial on Test 3 (SQLObject, 2% ahead)
+- **Batch sizes matter**: with 100 objects per transaction, batch and bulk inserts mostly measure one durable commit (~8 ms); with 10,000, the SQL ORMs' bulk inserts are 2–5x faster than their batch inserts, and the sync SQL ORMs' batch inserts differ up to 3x
+- **SQL ORMs on SQLite**: peewee and the sync variants of SA ORM and SQLModel are fastest (peewee on the simple models, SA ORM and SQLModel on the wide model and the large table), followed by Django; async adds overhead without any concurrency to gain
+- **SA ORM async / SQLModel async** (aiosqlite): 2–5x slower than their sync variants on reads, 2.5–7x on batch/bulk inserts and 12–16x on updates and deletes. SQLModel tracks closely with SA ORM (expected — it's a thin wrapper around SQLAlchemy)
+- **Bulk insert and IDs**: only Django, Piccolo and ObjectBox set the new IDs on bulk-inserted objects
+- **Tortoise ORM**: the fastest async ORM on SQLite
 - **ormar**: Pydantic validation overhead causes significant slowdown, especially on wide models (Test 3)
-- **SQLObject**: Missing bulk insert and dict/tuple filter operations, but surprisingly fast on single-row SQLite operations
+- **SQLObject**: no bulk insert; fast on Get, and the fastest SQL ORM on updates on the large table
 
 ## Running the benchmarks
 
 ```sh
 # Clone and install
-git clone https://github.com/tortoise/orm-benchmarks.git
-cd orm-benchmarks
-uv venv && source .venv/bin/activate
-uv pip install -e .
+git clone https://github.com/objectbox/python-orm-benchmarks.git
+cd python-orm-benchmarks
+uv venv --python 3.14 && source .venv/bin/activate
+# ObjectBox 5.0.0b1 is only on TestPyPI: install it first, without dependencies
+uv pip install --no-deps --index-url https://test.pypi.org/simple/ objectbox==5.0.0b1 objectbox-api==5.0.0b1 objectbox-clib==5.3.2
+uv pip install --no-sources -r pyproject.toml
 
-# SQLite (default)
-cd benchmarks && sh bench.sh
-
-# PostgreSQL
-export DBTYPE=postgres PASSWORD=yourpassword PGPORT=5432
-cd benchmarks && sh bench.sh
-
-# MySQL
-export DBTYPE=mysql PASSWORD=yourpassword MYPORT=3306
-cd benchmarks && sh bench.sh
+# All ORMs and ObjectBox, Tests 1-3
+cd benchmarks
+sh bench.sh
+# With a warm-up run before each timed operation
+WARMUP=1 sh bench.sh
+# Large table: D-K on ~20,100 rows
+LARGE_TABLE=1 sh bench.sh
 ```
+
+For PostgreSQL and MySQL, see [postgres-mysql.md](postgres-mysql.md).

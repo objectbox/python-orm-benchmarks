@@ -35,7 +35,8 @@ elif dbtype == "mysql":
 else:
     from piccolo.engine.sqlite import SQLiteEngine
 
-    DB = SQLiteEngine(path="/tmp/db.sqlite3")
+    # Busy timeout 60 s instead of 5 s: the concurrent tasks' transactions wait for SQLite's write lock
+    DB = SQLiteEngine(path="/tmp/db.sqlite3", timeout=60)
 
 test = int(os.environ.get("TEST", "1"))
 if test == 1:

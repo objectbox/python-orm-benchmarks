@@ -1,8 +1,9 @@
 import asyncio
+import gc
 import os
 import time
 
-from models import Journal, DB
+from models import DB, Journal
 
 concurrents = int(os.environ.get("CONCURRENTS", "10"))
 
@@ -19,6 +20,12 @@ async def runtest(loopstr):
     inrange = len(objs) // concurrents
     if inrange < 1:
         inrange = 1
+
+    # Settle the GC: collect leftovers, keep existing objects out of collections while timed
+
+    gc.collect()
+
+    gc.freeze()
 
     start = time.time()
     count = sum(

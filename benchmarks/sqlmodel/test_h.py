@@ -1,9 +1,10 @@
 import asyncio
+import gc
 import os
 import time
 
-from sqlalchemy import select
 from models import Journal, SessionLocal
+from sqlalchemy import select
 
 LEVEL_CHOICE = [10, 20, 30, 40, 50]
 concurrents = int(os.environ.get("CONCURRENTS", "10"))
@@ -27,7 +28,13 @@ async def runtest(loopstr):
     if inrange < 1:
         inrange = 1
 
+    # Settle the GC: collect leftovers, keep existing objects out of collections while timed
+
+    gc.collect()
+
+    gc.freeze()
+
     start = time.time()
     count = sum(await asyncio.gather(*[_runtest(inrange) for _ in range(concurrents)]))
     now = time.time()
-    print(f"SQLModel{loopstr}, H: Rows/sec: {count / (now - start): 10.2f}")
+    print(f"SQLModel async{loopstr}, H: Rows/sec: {count / (now - start): 10.2f}")

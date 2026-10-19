@@ -1,4 +1,5 @@
 import asyncio
+import gc
 import os
 import time
 
@@ -23,6 +24,12 @@ async def runtest(loopstr):
     inrange = 10 // concurrents
     if inrange < 1:
         inrange = 1
+
+    # Settle the GC: collect leftovers, keep existing objects out of collections while timed
+
+    gc.collect()
+
+    gc.freeze()
 
     start = now = time.time()
 

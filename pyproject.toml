@@ -14,6 +14,7 @@ dependencies = [
     "piccolo",
     "ormar",
     "sqlmodel",
+    "objectbox==5.0.0b1",  # beta, only on TestPyPI: install it first (see AGENTS.md)
     "databases[aiosqlite]",
     "aiosqlite",
     # DB drivers
