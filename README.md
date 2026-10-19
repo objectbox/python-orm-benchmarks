@@ -8,6 +8,16 @@ Older results for PostgreSQL and MySQL (SQL ORMs only, earlier benchmark version
 
 Higher is better: rows (objects) per second, as the geometric mean over the 9 object operations of each test (SQLObject has no bulk insert, so its mean covers 8; see [Setup](#setup)). Each value is the median of 5 full runs.
 
+**Contents**
+
+- [Overall results](#overall-results): [cold](#cold), [warm](#warm), [large table (~20,000 rows)](#large-table-20000-rows)
+- [Setup](#setup): [operations](#operations), [test models](#test-models)
+- [Detailed results: cold](#detailed-results-cold): [Test 1](#test-1-simple-model-4-fields), [Test 2](#test-2-fk-relations), [Test 3](#test-3-wide-model-32-fields)
+- [Detailed results: warm](#detailed-results-warm): [Test 1](#test-1-simple-model-4-fields-1), [Test 2](#test-2-fk-relations-1), [Test 3](#test-3-wide-model-32-fields-1)
+- [Detailed results: large table](large-table.md) (separate page)
+- [Analysis](#analysis): [cold](#cold-objectbox-about-3x-the-best-sql-orm), [warm](#warm-sync-orms-and-objectbox-gain-the-order-stays), [large table](#large-table-the-commit-is-amortized-objectbox-stays-ahead), [key takeaways](#key-takeaways)
+- [Running the benchmarks](#running-the-benchmarks)
+
 ## Overall results
 
 ### Cold
