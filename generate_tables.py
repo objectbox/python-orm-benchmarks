@@ -100,29 +100,34 @@ def generate_table(data, orms=None):
     return "\n".join(lines)
 
 
-# PostgreSQL
-print("### PostgreSQL\n")
-for i, test_name in enumerate(["Test 1: Simple Model (4 fields)", "Test 2: FK Relations", "Test 3: Wide Model (32+ fields)"], 1):
-    data = parse_results(f"/tmp/pg_outfile{i}")
-    orms = [o for o in ORM_ORDER if o in data]
-    print(f"#### {test_name}\n")
-    print(generate_table(data, orms))
-    print()
+def main():
+    # PostgreSQL
+    print("### PostgreSQL\n")
+    for i, test_name in enumerate(["Test 1: Simple Model (4 fields)", "Test 2: FK Relations", "Test 3: Wide Model (32+ fields)"], 1):
+        data = parse_results(f"/tmp/pg_outfile{i}")
+        orms = [o for o in ORM_ORDER if o in data]
+        print(f"#### {test_name}\n")
+        print(generate_table(data, orms))
+        print()
 
-# MySQL
-print("\n### MySQL\n")
-for i, test_name in enumerate(["Test 1: Simple Model (4 fields)", "Test 2: FK Relations", "Test 3: Wide Model (32+ fields)"], 1):
-    data = parse_results(f"/tmp/mysql_outfile{i}")
-    orms = [o for o in ORM_ORDER if o in data]
-    print(f"#### {test_name}\n")
-    print(generate_table(data, orms))
-    print()
+    # MySQL
+    print("\n### MySQL\n")
+    for i, test_name in enumerate(["Test 1: Simple Model (4 fields)", "Test 2: FK Relations", "Test 3: Wide Model (32+ fields)"], 1):
+        data = parse_results(f"/tmp/mysql_outfile{i}")
+        orms = [o for o in ORM_ORDER if o in data]
+        print(f"#### {test_name}\n")
+        print(generate_table(data, orms))
+        print()
 
-# SQLite
-print("\n### SQLite\n")
-for i, test_name in enumerate(["Test 1: Simple Model (4 fields)", "Test 2: FK Relations", "Test 3: Wide Model (32+ fields)"], 1):
-    data = parse_results(f"/tmp/sqlite_outfile{i}")
-    orms = [o for o in ORM_ORDER if o in data]
-    print(f"#### {test_name}\n")
-    print(generate_table(data, orms))
-    print()
+    # SQLite
+    print("\n### SQLite\n")
+    for i, test_name in enumerate(["Test 1: Simple Model (4 fields)", "Test 2: FK Relations", "Test 3: Wide Model (32+ fields)"], 1):
+        data = parse_results(f"/tmp/sqlite_outfile{i}")
+        orms = [o for o in ORM_ORDER if o in data]
+        print(f"#### {test_name}\n")
+        print(generate_table(data, orms))
+        print()
+
+
+if __name__ == "__main__":
+    main()
