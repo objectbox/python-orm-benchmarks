@@ -70,6 +70,17 @@ class Snapshot:
         else:
             with contextlib.closing(sqlite3.connect(SQLITE_DB)) as db:
                 self.mem.backup(db)
+                if db.execute("PRAGMA journal_mode").fetchone()[0] == "wal":  # peewee, Tortoise ORM
+                    # The restored pages are in the WAL: write them to the DB file now, so the
+                    # measured run's commit doesn't run the auto-checkpoint that does it
+                    busy, _, _ = db.execute("PRAGMA wal_checkpoint(RESTART)").fetchone()
+                    if busy:
+                        sys.exit("warmup: WAL checkpoint after the restore was blocked")
+                    # Start the new WAL with a no-op write: with synchronous=FULL, the first commit
+                    # to a restarted WAL also syncs its header. The measured run's commit appends,
+                    # as in a cold run, where the WAL still holds the previous process's frames
+                    version = db.execute("PRAGMA user_version").fetchone()[0]
+                    db.execute(f"PRAGMA user_version = {version}")
             self.mem.close()
         clear_orm_caches()
         gc.collect()
