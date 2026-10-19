@@ -282,8 +282,6 @@ One more effect of the larger batches: the rows deleted after Insert: Batch and 
 git clone https://github.com/objectbox/python-orm-benchmarks.git
 cd python-orm-benchmarks
 uv venv --python 3.14 && source .venv/bin/activate
-# ObjectBox 5.0.0b1 is only on TestPyPI: install it first, without dependencies
-uv pip install --no-deps --index-url https://test.pypi.org/simple/ objectbox==5.0.0b1 objectbox-api==5.0.0b1 objectbox-clib==5.3.2
 uv pip install --no-sources -r pyproject.toml
 
 # All ORMs and ObjectBox, Tests 1-3
