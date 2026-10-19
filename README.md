@@ -2,6 +2,8 @@
 
 Performance benchmarks of embedded databases in Python: the object database [ObjectBox](https://github.com/objectbox/objectbox-python) and SQLite, accessed through popular Python ORMs. Everything runs in-process on local storage, without a database server.
 
+This is a fork of [tortoise/orm-benchmarks](https://github.com/tortoise/orm-benchmarks), the ORM benchmark of the Tortoise ORM project. Changes: ObjectBox added; sync variants of SQLAlchemy and SQLModel added; only persisting is timed (objects and new values are prepared before the timer); a warm-up mode; batch and bulk inserts with 10,000 objects; a large-table mode; fixes to how the suite uses several ORMs (see [raw-results/2026-10-18](raw-results/2026-10-18/README.md)); results are the median of 5 runs.
+
 Older results for PostgreSQL and MySQL (SQL ORMs only, earlier benchmark version, different machine) are in [postgres-mysql.md](postgres-mysql.md).
 
 Higher is better: rows (objects) per second, as the geometric mean over the 9 object operations of each test (SQLObject has no bulk insert, so its mean covers 8; see [Setup](#setup)). Each value is the median of 5 full runs.
@@ -118,7 +120,7 @@ Insert: Bulk uses each ORM's fastest bulk path. Only Django (`bulk_create()`), P
 
 ## Detailed results: cold
 
-SQLite on the local filesystem (`/tmp/db.sqlite3`), ObjectBox in `/tmp/objectbox-bench`. SQLite allows one writer at a time, so the benchmark is single-threaded; async ORMs pay overhead without a concurrency benefit. These are cold numbers; see [Detailed results: warm](#detailed-results-warm) for runs with a warm-up run before each operation.
+SQLite on the local filesystem (`/tmp/db.sqlite3`), ObjectBox in `/tmp/objectbox-bench`. SQLite allows one writer at a time, so the benchmark is single-threaded; async ORMs pay overhead without a concurrency benefit. These are cold numbers; see [Detailed results: warm](#detailed-results-warm) for runs with a warm-up run before each operation. The charts per test use a logarithmic scale (rows/sec range from ~50 to ~1,000,000), so equal bar-height differences mean equal ratios.
 
 ### Test 1: Simple Model (4 fields)
 
@@ -267,17 +269,20 @@ One more effect of the larger batches: the rows deleted after Insert: Batch and 
 
 ```sh
 # Clone and install
-git clone https://github.com/tortoise/orm-benchmarks.git
-cd orm-benchmarks
+git clone https://github.com/objectbox/python-orm-benchmarks.git
+cd python-orm-benchmarks
 uv venv --python 3.14 && source .venv/bin/activate
 # ObjectBox 5.0.0b1 is only on TestPyPI: install it first, without dependencies
 uv pip install --no-deps --index-url https://test.pypi.org/simple/ objectbox==5.0.0b1 objectbox-api==5.0.0b1 objectbox-clib==5.3.2
 uv pip install --no-sources -r pyproject.toml
 
 # All ORMs and ObjectBox, Tests 1-3
-cd benchmarks && sh bench.sh
+cd benchmarks
+sh bench.sh
 # With a warm-up run before each timed operation
-cd benchmarks && WARMUP=1 sh bench.sh
+WARMUP=1 sh bench.sh
+# Large table: D-K on ~20,100 rows
+LARGE_TABLE=1 sh bench.sh
 ```
 
 For PostgreSQL and MySQL, see [postgres-mysql.md](postgres-mysql.md).

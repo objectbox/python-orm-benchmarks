@@ -66,8 +66,12 @@ def compute_geometric_mean(values):
     return math.exp(sum(math.log(v) for v in vals) / len(vals))
 
 
-def generate_chart(data, title, output_path, show_geomean=True):
-    """Generate a grouped bar chart for benchmark results."""
+def generate_chart(data, title, output_path, show_geomean=True, log_scale=True):
+    """Generate a grouped bar chart for benchmark results.
+
+    Log scale by default: the operations span ~50 to ~1,000,000 rows/sec, so a linear axis hides the
+    slow ones (single inserts, updates, deletes) next to the fast reads.
+    """
     orms = [o for o in ORM_ORDER if o in data]
     ops = [o for o in OP_ORDER if any(o in data.get(orm, {}) for orm in orms)]
 
@@ -97,8 +101,15 @@ def generate_chart(data, title, output_path, show_geomean=True):
 
     ax.set_xticks(x)
     ax.set_xticklabels(labels, fontsize=9)
-    ax.set_ylabel("Rows/sec", fontsize=11, fontweight="bold")
     ax.set_title(title, fontsize=14, fontweight="bold", pad=15)
+    if log_scale:
+        ax.set_yscale("log")
+        ax.set_ylim(bottom=10)
+        ax.set_ylabel("Rows/sec (log scale)", fontsize=11, fontweight="bold")
+        ax.yaxis.set_minor_formatter(ticker.NullFormatter())
+        ax.grid(axis="y", which="minor", alpha=0.1, zorder=0)
+    else:
+        ax.set_ylabel("Rows/sec", fontsize=11, fontweight="bold")
     ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, _: f"{v:,.0f}"))
     ax.grid(axis="y", alpha=0.3, zorder=0)
     ax.set_axisbelow(True)
