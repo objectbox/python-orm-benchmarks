@@ -20,7 +20,8 @@ OP_LABELS = {
 }
 
 ORM_ORDER = ["Django", "peewee", "SA ORM", "SA ORM async", "SQLObject", "Tortoise ORM", "Piccolo", "ormar", "SQLModel", "SQLModel async", "ObjectBox"]
-OP_ORDER = list("ABCDEFGHIJK")
+# Filter: dict/tuple (G/H) are measured but not presented: they return plain rows, not objects
+OP_ORDER = list("ABCDEFIJK")
 
 
 def parse_results(filepath):
@@ -30,7 +31,8 @@ def parse_results(filepath):
             m = re.match(r"^\s*(?:\d+[→\t])?\s*(.+?),\s*([A-K]):\s*Rows/sec:\s*([\d.]+)", line)
             if m:
                 orm, op, val = m.group(1).strip(), m.group(2), float(m.group(3))
-                data[orm][op] = val
+                if op in OP_ORDER:
+                    data[orm][op] = val
     return dict(data)
 
 
