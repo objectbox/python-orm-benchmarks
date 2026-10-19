@@ -260,20 +260,20 @@ With a warm-up run, the sync ORMs' geometric means rise by 5–29% (SA ORM and S
 
 With ~20,100 rows, updates and deletes spread their one durable commit over 67x more rows, so most ORMs' geometric means rise 1.2–2.6x; ObjectBox again has the best one in all three tests, 1.7–1.9x the best SQL ORM cold (98,011 vs SA ORM's 51,155, 90,446 vs SQLModel's 47,916, 37,444 vs SA ORM's 22,292) and 1.7–2.1x warm. Among the SQL ORMs, SA ORM leads on Tests 1 and 3 and SQLModel on Test 2 (where SA ORM's Delete holds it back); peewee follows. Among the SQL ORMs, SQLObject has the fastest updates; on Test 3 it edges out ObjectBox on Update: Partial (57,789 vs 56,683 rows/sec). peewee is ~10% faster than ObjectBox on Filter: Small on Test 1 (122,009 vs 110,913) and on par on Test 2: ObjectBox's limit/offset query gets slower with ~4,000 instead of ~60 matching rows per level (266k rows/sec on the default table), while SQLite's index scan stops after the offset and 20 rows. Django has the fastest Filter: dict on Tests 1 and 2, and SQLModel passes a million rows/sec on Filter: tuple.
 
-Delete on Test 2 (FK relations) is the slowest operation on the large table for SA ORM (1,143 rows/sec), SA ORM async (1,272), Piccolo (1,434), Tortoise ORM (1,522), ormar (2,169) and Django (2,424), while peewee, SQLModel and SQLObject delete 44,000–102,000 rows/sec. SA ORM and Tortoise ORM get ~2x slower per row than on ~300 rows (2,236 and 3,874); the likely cause is per-row lookups of related rows (children through the self-reference, M2M links) that grow with the table: in the SA ORM model, the self-referencing `parent_id` has no index.
+Delete on Test 2 (FK relations) is the slowest operation on the large table for SA ORM (1,143 rows/sec), SA ORM async (1,272), Piccolo (1,434), Tortoise ORM (1,522), ormar (2,169) and Django (2,424), while peewee, SQLModel and SQLObject delete 44,000–102,000 rows/sec. SA ORM and Tortoise ORM get 2.0x and 2.5x slower per row than on ~300 rows (2,236 and 3,874); the likely cause is per-row lookups of related rows (children through the self-reference, M2M links) that grow with the table: in the SA ORM model, the self-referencing `parent_id` has no index.
 
 One more effect of the larger batches: the rows deleted after Insert: Batch and Insert: Bulk leave free space in the database files, so later writes mostly don't grow the files. For ObjectBox this makes update commits cheaper (fdatasync of the data file ~1.7 ms instead of ~6.2 ms when the file grows), so on Test 1 its Update: Whole and Update: Partial are 1.3x and 1.9x faster than with 100-object batches. A database that has been in use for a while is usually in this state too.
 
 ### Key takeaways
 
-- **ObjectBox**: about 2x the best SQL ORM's geometric mean (cold, warm and large table; without the dict/tuple operations); fastest in every operation it runs except, on the large table, Filter: Small on Test 1 (peewee) and Update: Partial on Test 3 (SQLObject, 2% ahead)
+- **ObjectBox**: 1.7–2.3x the best SQL ORM's geometric mean (cold, warm and large table; without the dict/tuple operations); fastest in every operation it runs except, on the large table, Filter: Small on Test 1 (peewee) and Update: Partial on Test 3 (SQLObject, 2% ahead)
 - **Batch sizes matter**: with 100 objects per transaction, batch and bulk inserts mostly measure one durable commit (~8 ms); with 10,000, the SQL ORMs' bulk inserts are 2–5x faster than their batch inserts, and the sync SQL ORMs' batch inserts differ up to 3x
 - **SQL ORMs on SQLite**: peewee and the sync variants of SA ORM and SQLModel are fastest (peewee on the simple models, SA ORM and SQLModel on the wide model and the large table), followed by Django; async adds overhead without any concurrency to gain
 - **SA ORM async / SQLModel async** (aiosqlite): 2–7x slower than their sync variants on reads, 2.5–7x on batch/bulk inserts and 12–16x on updates and deletes. SQLModel tracks closely with SA ORM (expected — it's a thin wrapper around SQLAlchemy)
 - **Bulk insert and IDs**: only Django, Piccolo and ObjectBox set the new IDs on bulk-inserted objects
 - **Tortoise ORM**: the fastest async ORM on SQLite
 - **ormar**: Pydantic validation overhead causes significant slowdown, especially on wide models (Test 3)
-- **SQLObject**: no bulk insert and no dict/tuple filters; fast on Get and on updates
+- **SQLObject**: no bulk insert and no dict/tuple filters; fast on Get, and the fastest SQL ORM on updates on the large table
 
 ## Running the benchmarks
 
